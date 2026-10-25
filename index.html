@@ -1449,7 +1449,7 @@ $('openDeveloper').onclick=()=>modal('WEWENANG DEVELOPER',b=>{
    const {error}=await sb.rpc('sos_developer_gift',{p_player_id:recipient,p_coins:c,p_diamonds:d,p_exp:x});if(error)throw error;
    alert('Berhasil mengirim hadiah ke #'+recipient+' (koin, berlian, dan/atau EXP).');
    $('devCoins').value='0';$('devDiamonds').value='0';$('devExp').value='0';await refreshAccountProfile();
-  }catch(err){alert('Gift gagal dikirim: '+(err?.message||String(err))+'\nPastikan SQL migrasi SOS Arena terbaru sudah dijalankan di Supabase.')}finally{gift.disabled=false;gift.textContent='KIRIM GIFT'}
+  }catch(err){const msg=(err?.message||String(err));alert('Gift gagal dikirim: '+msg+(msg.toLowerCase().includes('overflow')||msg.toLowerCase().includes('out of range')?'\nKemungkinan kolom saldo/EXP masih integer atau fungsi RPC lama aktif. Jalankan sos_arena_developer_migration_fix_overflow.sql di Supabase SQL Editor, lalu coba lagi.':'\nPastikan SQL migrasi SOS Arena terbaru sudah dijalankan di project Supabase yang dipakai situs.'))}finally{gift.disabled=false;gift.textContent='KIRIM GIFT'}
  };b.append(gift);
  b.append(field('ID akun yang akan diban (#6 karakter)','devBanId',''));
  b.append(field('Durasi ban (jam; 0 = permanen)','devBanHours','1','number'));
