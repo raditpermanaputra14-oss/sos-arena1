@@ -1299,12 +1299,13 @@ async function refreshAccountProfile(){
  if(!user||!sb)return false;
  const status=$('accountStatus');
  try{
-  let r=await sb.from('sos_profiles').select('user_id,player_id,coins,diamonds,display_name,level,exp').eq('user_id',user.id).maybeSingle();
+  let r=await sb.from('sos_profiles').select('user_id,player_id,coins,diamonds,display_name,level,exp,is_banned,ban_until').eq('user_id',user.id).maybeSingle();
   if(r.error)throw r.error;
   let profile=r.data;
+  if(profile?.is_banned&&(!profile.ban_until||new Date(profile.ban_until)>new Date())){await sb.auth.signOut();user=null;showScreen('auth');throw new Error('Akun ini diblokir oleh developer. Hubungi pengelola jika merasa ini keliru.');}
   if(!profile){
    const newId=(user.email||'').toLowerCase()===DEV_EMAIL?'000000':makePlayerId();
-   const created=await sb.from('sos_profiles').insert({user_id:user.id,player_id:newId,coins:0,diamonds:0,display_name:(user.user_metadata?.nickname||user.email?.split('@')[0]||'Pemain')}).select('user_id,player_id,coins,diamonds,display_name,level,exp').single();
+   const created=await sb.from('sos_profiles').insert({user_id:user.id,player_id:newId,coins:0,diamonds:0,display_name:(user.user_metadata?.nickname||user.email?.split('@')[0]||'Pemain')}).select('user_id,player_id,coins,diamonds,display_name,level,exp,is_banned,ban_until').single();
    if(created.error)throw created.error;
    profile=created.data;
   }
@@ -1432,30 +1433,44 @@ $('coinPlus').onclick=openCurrencyMenu;$('diamondPlus').onclick=openCurrencyMenu
 async function refreshDailyDiamondClaim(){const el=$('dailyDiamondClaim');const modalEl=$('dailyDiamondClaimModal');if(!el&&!modalEl)return;if(!user||!sb){if(el)el.textContent='Login untuk mengklaim 1 berlian setiap 24 jam.';if(modalEl)modalEl.textContent='Login untuk mengklaim 1 berlian setiap 24 jam.';return}try{const r=await sb.rpc('sos_daily_diamond_status');if(r.error)throw r.error;const d=Array.isArray(r.data)?r.data[0]:r.data;const next=d?.next_claim_at?new Date(d.next_claim_at).getTime():0;const left=Math.max(0,next-Date.now());if(left<=0){if(el)el.innerHTML='Klaim harian tersedia: <b>+1 💎</b> <button id="claimDailyDiamond" type="button">KLAIM</button>';if(modalEl)modalEl.innerHTML='Klaim harian tersedia: <b>+1 💎</b> <button id="claimDailyDiamondModalBtn" type="button">KLAIM</button>';const bt=$('claimDailyDiamond');const btm=$('claimDailyDiamondModalBtn');if(btm)btm.onclick=()=>bt?.click();bt.onclick=async()=>{bt.disabled=true;try{const c=await sb.rpc('sos_claim_daily_diamond');if(c.error)throw c.error;await refreshAccountProfile();await refreshDailyDiamondClaim()}catch(e){alert('Klaim gagal: '+e.message);await refreshDailyDiamondClaim()} };}else{const h=Math.floor(left/3600000),m=Math.floor(left%3600000/60000),sec=Math.floor(left%60000/1000);const label='Sudah diambil ✓ · Klaim berikutnya dalam '+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');if(el)el.textContent=label;if(modalEl)modalEl.textContent=label;setTimeout(refreshDailyDiamondClaim,1000)}}catch(e){if(el)el.textContent='Klaim harian belum tersedia. Jalankan SQL pembaruan terbaru.';if(modalEl)modalEl.textContent='Klaim harian belum tersedia. Jalankan SQL pembaruan terbaru.';console.warn('Status klaim berlian:',e.message)}}
 $('diamondPlus').onclick=()=>modal('KLAIM BERLIAN HARIAN',b=>{const p=document.createElement('p');p.className='muted';p.textContent='Klaim 1 berlian gratis setiap 24 jam. Tidak ada iklan. Setelah diklaim, tombol berubah menjadi “Sudah diambil” dan timer menghitung mundur.';b.append(p);const status=document.createElement('div');status.id='dailyDiamondClaimModal';status.className='notice';status.textContent='Memeriksa status klaim…';b.append(status);refreshDailyDiamondClaim();});
 $('openDeveloper').onclick=()=>modal('WEWENANG DEVELOPER',b=>{
- let p=document.createElement('p');p.className='muted';p.textContent='Akun developer terdeteksi. Aksi hadiah, daftar email, dan ban harus dijalankan melalui fungsi server terverifikasi agar tidak dapat dipalsukan dari browser.';b.append(p);
- b.append(field('ID penerima (#6 karakter)','devRecipient',''));b.append(field('Jumlah koin (0 jika tidak dikirim)','devCoins','0','number'));b.append(field('Jumlah berlian (0 jika tidak dikirim)','devDiamonds','0','number'));
- let gift=document.createElement('button');gift.textContent='KIRIM GIFT';gift.onclick=async()=>{
+ const p=document.createElement('p');p.className='muted';p.textContent='Semua perubahan dijalankan melalui fungsi Supabase yang memeriksa izin developer di server. Masukkan ID pemain, bukan email.';b.append(p);
+ b.append(field('ID penerima (#6 karakter)','devRecipient',''));
+ b.append(field('Jumlah koin (0 jika tidak dikirim)','devCoins','0','number'));
+ b.append(field('Jumlah berlian (0 jika tidak dikirim)','devDiamonds','0','number'));
+ b.append(field('Jumlah EXP (0 jika tidak dikirim)','devExp','0','number'));
+ const gift=document.createElement('button');gift.textContent='KIRIM GIFT';gift.onclick=async()=>{
   const recipient=$('devRecipient').value.trim().replace(/^#/,'').toUpperCase();
-  const c=Number($('devCoins').value),d=Number($('devDiamonds').value);
+  const c=Number($('devCoins').value),d=Number($('devDiamonds').value),x=Number($('devExp').value);
   if(!sb||!user){alert('Login ke akun developer terlebih dahulu.');return}
-  if(!/^([A-Z0-9]{6})$/.test(recipient)||c<0||d<0||!Number.isSafeInteger(c)||!Number.isSafeInteger(d)||(c===0&&d===0)){alert('ID atau jumlah gift tidak valid. ID harus 6 karakter dan jumlah harus bilangan bulat non-negatif.');return}
+  if(!/^[A-Z0-9]{6}$/.test(recipient)||[c,d,x].some(n=>!Number.isSafeInteger(n)||n<0)||(c===0&&d===0&&x===0)){alert('ID harus 6 karakter dan setidaknya satu hadiah harus lebih dari 0. Semua jumlah harus bilangan bulat non-negatif.');return}
   gift.disabled=true;gift.textContent='MENGIRIM…';
   try{
-    if((user.email||'').toLowerCase()!==DEV_EMAIL)throw new Error('Akun login bukan akun developer yang diizinkan.');
-    const {error}=await sb.rpc('sos_developer_gift',{p_player_id:recipient,p_coins:c,p_diamonds:d});
-    if(error)throw error;
-    alert('Gift berhasil dikirim ke #'+recipient+'! Database telah menerima perintah gift. Saldo penerima akan terlihat setelah profil tersinkron/di-refresh.');
-    $('devCoins').value='0';$('devDiamonds').value='0';
-    await refreshAccountProfile();
-  }catch(err){
-    console.error('sos_developer_gift error:',err);
-    const msg=err?.message||err?.details||String(err);
-    alert('Gift gagal dikirim: '+msg+'\n\nPeriksa apakah SQL sos_developer_gift sudah dijalankan pada project Supabase yang dipakai HTML, dan pastikan akun login adalah akun developer.');
-  }finally{gift.disabled=false;gift.textContent='KIRIM GIFT'}
-};b.append(gift);
- b.append(field('Email untuk pencarian log (opsional)','devEmail',''));b.append(field('Durasi ban (jam)','devBanHours','1','number'));
- let ban=document.createElement('button');ban.className='danger';ban.textContent='BAN AKUN';ban.onclick=()=>alert('Ban belum dijalankan. Fitur ini harus diproses dan divalidasi di server Supabase.');b.append(ban);
- let log=document.createElement('button');log.className='secondary';log.textContent='LIHAT RIWAYAT PENDAFTARAN';log.onclick=()=>alert('Riwayat email hanya dapat diakses melalui fungsi server dengan izin developer.');b.append(log)
+   if((user.email||'').trim().toLowerCase()!==DEV_EMAIL)throw new Error('Akun login bukan akun developer yang diizinkan.');
+   const {error}=await sb.rpc('sos_developer_gift',{p_player_id:recipient,p_coins:c,p_diamonds:d,p_exp:x});if(error)throw error;
+   alert('Berhasil mengirim hadiah ke #'+recipient+' (koin, berlian, dan/atau EXP).');
+   $('devCoins').value='0';$('devDiamonds').value='0';$('devExp').value='0';await refreshAccountProfile();
+  }catch(err){alert('Gift gagal dikirim: '+(err?.message||String(err))+'\nPastikan SQL migrasi SOS Arena terbaru sudah dijalankan di Supabase.')}finally{gift.disabled=false;gift.textContent='KIRIM GIFT'}
+ };b.append(gift);
+ b.append(field('ID akun yang akan diban (#6 karakter)','devBanId',''));
+ b.append(field('Durasi ban (jam; 0 = permanen)','devBanHours','1','number'));
+ const ban=document.createElement('button');ban.className='danger';ban.textContent='BAN AKUN';ban.onclick=async()=>{
+  const id=$('devBanId').value.trim().replace(/^#/,'').toUpperCase(),hours=Number($('devBanHours').value);
+  if(!sb||!user||(user.email||'').trim().toLowerCase()!==DEV_EMAIL){alert('Aksi hanya untuk akun developer.');return}
+  if(!/^[A-Z0-9]{6}$/.test(id)||!Number.isSafeInteger(hours)||hours<0){alert('Masukkan ID 6 karakter dan durasi jam bilangan bulat (0 untuk permanen).');return}
+  if(id==='000000'){alert('Akun developer tidak dapat diban dari panel ini.');return}
+  if(!confirm('Yakin memblokir akun #'+id+(hours===0?' secara permanen?':' selama '+hours+' jam?')))return;
+  ban.disabled=true;ban.textContent='MEMPROSES…';try{const {data,error}=await sb.rpc('sos_developer_ban',{p_player_id:id,p_duration_hours:hours});if(error)throw error;alert(data?.message||'Permintaan ban berhasil diproses untuk #'+id+'.');}catch(e){alert('Ban gagal: '+(e?.message||String(e))+'\nJalankan SQL migrasi developer di Supabase.')}finally{ban.disabled=false;ban.textContent='BAN AKUN'}
+ };b.append(ban);
+ const log=document.createElement('button');log.className='secondary';log.textContent='LIHAT RIWAYAT PENDAFTARAN';log.onclick=async()=>{
+  log.disabled=true;log.textContent='MEMUAT RIWAYAT…';
+  try{if(!sb||!user||(user.email||'').trim().toLowerCase()!==DEV_EMAIL)throw new Error('Aksi hanya untuk akun developer.');const {data,error}=await sb.rpc('sos_developer_registration_history');if(error)throw error;
+   const box=document.createElement('div');box.style.cssText='margin-top:12px;max-height:340px;overflow:auto;display:grid;gap:8px';
+   if(!data?.length){const empty=document.createElement('p');empty.className='muted';empty.textContent='Belum ada data pendaftaran.';box.append(empty)}
+   for(const item of (data||[])){const row=document.createElement('div');row.className='feature-row';const details=document.createElement('div');const email=document.createElement('strong');email.textContent=item.email||'(email tidak tersedia)';const meta=document.createElement('small');meta.textContent='ID #'+(item.player_id||'------')+' · Daftar: '+(item.created_at?new Date(item.created_at).toLocaleString('id-ID'):'waktu tidak tersedia');details.append(email,meta);row.append(details);box.append(row)}
+   const old=b.querySelector('#registrationHistoryResult');if(old)old.remove();box.id='registrationHistoryResult';b.append(box);
+   const note=document.createElement('p');note.className='muted';note.textContent='Demi keamanan, password tidak ditampilkan dan tidak dapat dipulihkan dari Supabase Auth. Gunakan reset password jika pengguna kehilangan akses.';box.append(note);
+  }catch(e){alert('Riwayat gagal dimuat: '+(e?.message||String(e))+'\nJalankan SQL migrasi developer di Supabase.')}finally{log.disabled=false;log.textContent='LIHAT RIWAYAT PENDAFTARAN'}
+ };b.append(log);
 });
 const patchInbox={id:'system-update-2026-10-21',createdAt:'2026-10-21T14:00:00+07:00',sender:'SYSTEM',title:'PEMBARUAN TERBARU',body:'PEMBARUAN TERBARU\n\nKami telah menambahkan fitur seperti;\n-Level\n-Mata uang\n-Profil dan List pertamanan\n-Toko\n\nKami sangat berharap dengan pembaruan yang kami buat dapat meningkatkan lingkungan game yang lebih baik.\n\nSalam hangat\nAEC.'};
 if(!SYSTEM_INBOX_MESSAGES.some(m=>m.id===patchInbox.id))SYSTEM_INBOX_MESSAGES.push(patchInbox);
