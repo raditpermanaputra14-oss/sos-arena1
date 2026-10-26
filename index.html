@@ -696,31 +696,34 @@ function speakQueued(text){return new Promise(resolve=>{try{if(!('speechSynthesi
 function showRelicKStandalone(){
  try{
   document.getElementById("relic-k-standalone-overlay")?.remove();
-  document.getElementById("relic-k-burst-style")?.remove();
   const woman=document.body.classList.contains("woman-theme");
   const kc=woman?"#ff168f":"#00eaff";
   const ov=document.createElement("div");
   ov.id="relic-k-standalone-overlay";
-  ov.style.cssText="position:fixed;inset:0;z-index:2147483647;pointer-events:none;overflow:hidden;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;";
-  const style=document.createElement('style');style.id='relic-k-burst-style';style.textContent=`
-   @keyframes relicKShadowEnter{0%{opacity:0;transform:translate(-50%,-50%) scale(.08) rotate(-24deg);filter:blur(22px)}38%{opacity:.95;transform:translate(-50%,-50%) scale(1.22) rotate(5deg);filter:blur(0)}55%{opacity:.72;transform:translate(-50%,-50%) scale(.96) rotate(0);filter:blur(1px)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.42);filter:blur(12px)}}
-   @keyframes relicKSpark{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateY(0) scale(.2)}18%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateY(var(--d)) scale(0)}}
-   @keyframes relicKGlowRing{0%{opacity:0;transform:translate(-50%,-50%) scale(.1)}22%{opacity:.95}100%{opacity:0;transform:translate(-50%,-50%) scale(1.9)}}
-   @keyframes relicKFadeShade{0%{background:rgba(0,0,0,0)}25%{background:rgba(0,0,0,.94)}62%{background:rgba(0,0,0,.94)}100%{background:rgba(0,0,0,0)}}`;
-  document.head.appendChild(style);ov.appendChild(document.createComment('Relik K visual effect'));
-  const shade=document.createElement('div');shade.style.cssText='position:absolute;inset:0;animation:relicKFadeShade 5s ease-in-out forwards';ov.appendChild(shade);
-  const shadow=document.createElement('div');shadow.textContent='K';shadow.style.cssText=`position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:1000 min(68vw,62vh)/.8 Arial,sans-serif;color:${kc};opacity:0;text-shadow:0 0 8px ${kc},0 0 25px ${kc},0 0 65px ${kc},0 0 120px ${kc};-webkit-text-stroke:2px rgba(255,255,255,.8);animation:relicKShadowEnter 3.7s cubic-bezier(.16,.8,.24,1) forwards;`;
-  ov.appendChild(shadow);
-  const ring=document.createElement('div');ring.style.cssText=`position:absolute;left:50%;top:50%;width:min(42vw,260px);height:min(42vw,260px);border:3px solid ${kc};border-radius:50%;box-shadow:0 0 22px ${kc},inset 0 0 22px ${kc};opacity:0;animation:relicKGlowRing 1.45s ease-out .45s forwards;`;ov.appendChild(ring);
-  for(let i=0;i<24;i++){const sp=document.createElement('i');const a=i*15;const d=(90+(i%5)*24)+'px';sp.style.cssText=`position:absolute;left:50%;top:50%;width:${i%3===0?5:3}px;height:${i%3===0?22:13}px;border-radius:99px;background:${i%4===0?'#fff':kc};box-shadow:0 0 10px ${kc};opacity:0;--a:${a}deg;--d:${d};animation:relicKSpark ${.85+(i%4)*.12}s cubic-bezier(.12,.7,.2,1) ${.35+(i%6)*.055}s forwards;`;ov.appendChild(sp)}
-  const word=document.createElement('div');word.style.cssText='position:relative;z-index:2;display:flex;gap:.04em;font:1000 clamp(34px,10vw,76px)/1 Arial,sans-serif;letter-spacing:.04em;';ov.appendChild(word);
-  ['R','E','L','I','K'].forEach((c,i)=>{const s=document.createElement('span');s.textContent=c;s.style.cssText='opacity:0;color:#fff;text-shadow:0 0 8px #fff,0 0 24px #fff;';word.appendChild(s);setTimeout(()=>{s.style.transition='opacity .18s,transform .28s';s.style.opacity='1';s.style.transform='translateY(-5px) scale(1.08)';setTimeout(()=>{s.style.opacity='0';s.style.transform='translateY(8px) scale(.8)'},280)},650+i*330)});
-  document.body.appendChild(ov);
-  setTimeout(()=>{try{shadow.style.animation='none';shadow.style.opacity='0';shadow.style.transition='opacity 1.2s,filter 1.2s,transform 1.2s';shadow.style.filter='blur(18px)';shadow.style.transform='translate(-50%,-50%) scale(1.55)';}catch(e){}},2750);
-  setTimeout(()=>{ov.remove();style.remove()},5200);
- }catch(e){console.error('Relik K effect error',e);}
+  ov.style.cssText="position:fixed;inset:0;z-index:2147483647;pointer-events:none;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background 2s linear;";
+  const wrap=document.createElement("div");
+  wrap.style.cssText="display:flex;gap:.05em;font:1000 clamp(42px,11vw,82px)/1 Arial,sans-serif;";
+  ov.appendChild(wrap); document.body.appendChild(ov);
+  setTimeout(()=>ov.style.background="rgba(0,0,0,1)",20);
+  const letters=["R","E","L","I","K"];
+  letters.forEach((c,i)=>{
+    const s=document.createElement("span");
+    s.textContent=c;
+    s.style.cssText="opacity:0;color:#fff;text-shadow:0 0 8px #fff,0 0 24px #fff;transition:opacity .22s;";
+    wrap.appendChild(s);
+    setTimeout(()=>s.style.opacity="1",600+i*430);
+    setTimeout(()=>s.style.opacity="0",930+i*430);
+  });
+  const big=document.createElement("span");
+  big.textContent="K";
+  big.style.cssText=`opacity:0;color:${kc};font-size:1.7em;text-shadow:0 0 10px ${kc},0 0 30px ${kc};transition:opacity .25s;`;
+  wrap.appendChild(big);
+  setTimeout(()=>big.style.opacity="1",2850);
+  setTimeout(()=>big.style.opacity="0",3750);
+  setTimeout(()=>ov.style.background="rgba(0,0,0,0)",3000);
+  setTimeout(()=>ov.remove(),5100);
+ }catch(e){console.error(e);}
 }
-
 function showSOSSpotlight(title,darkness,withShade=true,color=''){
  if(/relik\s*k|phoenix/i.test(String(title||''))){showRelicKStandalone();return;}
  const el=$('sosSpotlight'),heading=$('sosSpotlightTitle'),shade=$('sosSpotlightShade');
@@ -1772,4 +1775,98 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',addDecor,{once:true});else addDecor();
 })();
 </script>
+
+<style id="sos-start-cinematic-style">
+#sosStartCinematic{position:fixed;inset:0;z-index:200000;display:none;pointer-events:auto;background:#000;opacity:0;overflow:hidden;color:#fff;font-family:inherit}
+#sosStartCinematic.active{display:block}
+#sosStartCinematic .sos-start-count{position:absolute;top:max(14px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);font-size:clamp(27px,7vw,46px);font-weight:1000;font-variant-numeric:tabular-nums;text-shadow:0 0 18px currentColor}
+#sosStartCinematic .sos-start-vs{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:clamp(58px,17vw,112px);font-weight:1000;letter-spacing:.08em;opacity:0;white-space:nowrap;text-shadow:0 0 22px #fff6}
+#sosStartCinematic .sos-start-vs .v{color:#42caff;text-shadow:0 0 26px #168ec4}
+#sosStartCinematic .sos-start-vs .s{color:#ff82bc;text-shadow:0 0 26px #e85c9b}
+#sosStartCinematic .sos-start-team{position:absolute;top:48%;width:36%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;text-align:center;font-size:clamp(12px,3.2vw,20px);font-weight:900}
+#sosStartCinematic .left{right:calc(50% + 70px)}#sosStartCinematic .right{left:calc(50% + 70px)}
+#sosStartCinematic .sos-start-team span{opacity:0;clip-path:inset(0 100% 0 0);animation:sosSketchIn .8s cubic-bezier(.2,.8,.2,1) forwards;text-shadow:0 0 14px currentColor;overflow-wrap:anywhere}
+#sosStartCinematic .sos-start-loading{position:absolute;bottom:12%;left:0;right:0;text-align:center;opacity:0}
+#sosStartCinematic .sos-start-loading b{display:block;font-size:clamp(16px,4vw,22px);letter-spacing:.2em;color:#65f4ff}
+#sosStartCinematic .sos-start-loading span{display:block;margin:8px auto 0;padding:0 18px;color:#e1e8ff;font-size:clamp(12px,3vw,16px)}
+#sosStartCinematic.reveal .sos-start-vs{animation:sosVsSketch 1.05s cubic-bezier(.2,.8,.2,1) 6s forwards}
+#sosStartCinematic.reveal .sos-start-loading{animation:sosLoadIn .5s ease 5s forwards}
+#sosStartCinematic.fadeout .sos-start-vs,#sosStartCinematic.fadeout .sos-start-team,#sosStartCinematic.fadeout .sos-start-loading{animation:sosFadeText 5s linear forwards!important}
+@keyframes sosSketchIn{to{opacity:1;clip-path:inset(0 0 0 0)}}
+@keyframes sosVsSketch{0%{opacity:0;clip-path:inset(0 100% 0 0);filter:blur(8px);transform:translate(-50%,-50%) scale(.8)}70%{opacity:1;filter:blur(0)}100%{opacity:1;clip-path:inset(0 0 0 0);transform:translate(-50%,-50%) scale(1)}}
+@keyframes sosLoadIn{to{opacity:1}}@keyframes sosFadeText{to{opacity:0}}
+@media(max-width:480px){#sosStartCinematic .left{right:calc(50% + 44px)}#sosStartCinematic .right{left:calc(50% + 44px)}#sosStartCinematic .sos-start-team{width:34%}}
+</style>
+<script id="sos-start-cinematic-engine">
+(()=>{
+let busy=false,releaseScreen=null,startedAt=0,tick=null,loadingTick=null,screenFn=null;
+const notes=['Sedang menata papan','Sedang memperbaiki tombol','Sedang menyelaraskan giliran','Sedang menyiapkan arena','Sedang memeriksa koneksi pemain','Sedang menyiapkan efek SOS','Sedang menyinkronkan skor','Sedang memuat data pemain','Sedang mengatur pencahayaan arena'];
+function ensure(){
+ let el=document.getElementById('sosStartCinematic');if(el)return el;
+ el=document.createElement('div');el.id='sosStartCinematic';el.innerHTML='<div class="sos-start-count">30</div><div class="sos-start-team left"></div><div class="sos-start-vs"><span class="v">V</span><span class="s">S</span></div><div class="sos-start-team right"></div><div class="sos-start-loading"><b>MEMUAT</b><span></span></div>';
+ document.body.append(el);return el;
+}
+function getNames(){
+ const ps=Array.isArray(window.players)?window.players:[];
+ const safe=p=>String(p?.nickname||p?.name||'Pemain').slice(0,24);
+ if(window.room&&String(window.room.team_mode||'solo').toLowerCase()==='team'){
+  return {left:ps.filter(p=>String(p.team_side||'').toUpperCase()==='S').map(safe),right:ps.filter(p=>String(p.team_side||'').toUpperCase()==='O').map(safe)};
+ }
+ const me=ps.findIndex(p=>p?.id&&p.id===window.user?.id);
+ const ordered=ps.slice();if(me>0)ordered.unshift(ordered.splice(me,1)[0]);
+ return {left:ordered.length?[safe(ordered[0])]:['Pemain 1'],right:ordered.slice(1).map(safe).length?ordered.slice(1).map(safe):['Pemain 2']};
+}
+function paintNames(el){
+ const n=getNames(),l=el.querySelector('.left'),r=el.querySelector('.right');l.innerHTML='';r.innerHTML='';
+ const add=(box,names,delayStart)=>names.forEach((name,i)=>{const sp=document.createElement('span');sp.textContent=name;sp.style.animationDelay=(delayStart+i*.48)+'s';sp.style.color=getComputedStyle(document.body).getPropertyValue('--a').trim()||'#65f4ff';box.append(sp)});
+ // team S uses cyan; team O pink; solo names use active theme color
+ add(l,n.left,7.1);add(r,n.right,7.1+n.left.length*.48);
+ if(window.room&&String(window.room.team_mode||'solo').toLowerCase()==='team'){l.style.color='#42caff';r.style.color='#ff82bc';l.querySelectorAll('span').forEach(x=>x.style.color='#42caff');r.querySelectorAll('span').forEach(x=>x.style.color='#ff82bc')}
+}
+function run(){
+ if(busy)return false;busy=true;startedAt=performance.now();const el=ensure();el.className='active';el.style.opacity='0';el.querySelector('.sos-start-count').textContent='30';paintNames(el);
+ // Game music begins immediately on the real start action.
+ try{if(typeof window.setBgm==='function')window.setBgm('game')}catch(e){}
+ const originalShow=window.showScreen;
+ // Fade to black during seconds 1–5; switch screens invisibly at second 15.
+ el.style.transition='opacity 5s linear';requestAnimationFrame(()=>el.style.opacity='1');
+ el.classList.add('reveal');
+ let lastNote=-1, darknessFading=false;
+ tick=setInterval(()=>{
+  const elapsed=(performance.now()-startedAt)/1000,remain=Math.max(0,Math.ceil(30-elapsed));
+  const c=el.querySelector('.sos-start-count');c.textContent=remain;
+  c.style.color=remain>=16?'#53ff8b':remain>=6?'#ffe45c':'#ff526e';
+  if(elapsed>=5&&elapsed<25)el.querySelector('.sos-start-loading').style.opacity='1';
+  if(elapsed>=5&&elapsed<25){const idx=Math.floor((elapsed-5)/2)%notes.length;if(idx!==lastNote){el.querySelector('.sos-start-loading span').textContent=notes[idx];lastNote=idx}}
+  if(elapsed>=24)el.classList.add('fadeout');
+  if(elapsed>=25&&!darknessFading){darknessFading=true;el.style.opacity='0';}
+  if(elapsed>=30){
+   clearInterval(tick);tick=null;
+   el.querySelector('.sos-start-vs').style.opacity='0';el.querySelectorAll('.sos-start-team span').forEach(x=>x.style.opacity='0');el.querySelector('.sos-start-loading').style.opacity='0';
+   el.style.transition='none';el.style.opacity='0';el.classList.remove('active','reveal','fadeout');
+   // Restore interaction only after every overlay element has disappeared.
+   if(releaseScreen){releaseScreen();releaseScreen=null}
+   busy=false;
+  }
+ },50);
+ return true;
+}
+// Capture screen changes and delay the room->game switch to exactly 15 seconds.
+const origShow=window.showScreen;
+if(typeof origShow==='function'){
+ window.showScreen=function(s){
+  if(s==='game'&&busy){return;}
+  if(s==='game'&&!busy){
+   // Save the intended transition; execute it at t=15 under full darkness.
+   const args=arguments;const ctx=this;
+   run();releaseScreen=()=>origShow.apply(ctx,args);
+   setTimeout(()=>{if(busy&&releaseScreen){const fn=releaseScreen;releaseScreen=null;fn()}},15000);
+   return;
+  }
+  return origShow.apply(this,arguments);
+ };
+}
+})();
+</script>
+
 </body></html>
