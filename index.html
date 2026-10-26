@@ -542,16 +542,21 @@ body:not(.woman-theme) #sosSpotlight.relic-k .relic-final-k{--relic-k-color:#00e
 <style>
 #startCinematic{position:fixed;inset:0;z-index:200000;display:none;pointer-events:auto;background:transparent;opacity:1;color:#fff;font-family:inherit;isolation:isolate}#startCinematic:before{content:'';position:absolute;inset:0;background:#000;opacity:var(--cin-darkness,0);z-index:-1;pointer-events:none}
 #startCinematic.active{display:block}
-#startCinematic .count{position:absolute;top:max(7vh,env(safe-area-inset-top));left:0;right:0;text-align:center;font-weight:1000;font-size:clamp(16px,4vw,27px);text-shadow:0 2px 15px #000}
-#startCinematic .count strong{display:block;font-size:clamp(42px,10vw,76px);line-height:1.1}
-#startCinematic .versus{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;gap:.12em;font-weight:1000;font-size:clamp(48px,13vw,100px);opacity:0;white-space:nowrap}
-#startCinematic .v{color:#42caff;text-shadow:0 0 24px #168ec4}.sos-vs .s{color:#ff82bc;text-shadow:0 0 24px #e85c9b}
-#startCinematic .names{position:absolute;top:calc(50% + clamp(48px,12vw,85px));left:5%;right:5%;display:grid;grid-template-columns:1fr auto 1fr;gap:12px;text-align:center;font-size:clamp(12px,3.2vw,20px);font-weight:850}
-#startCinematic .name-list{display:flex;flex-direction:column;gap:7px;overflow-wrap:anywhere}
+#startCinematic .count{position:absolute;top:max(1.5vh,env(safe-area-inset-top));left:0;right:0;text-align:center;font-weight:1000;font-size:clamp(15px,3.6vw,24px);line-height:1.02;text-shadow:0 2px 15px #000;z-index:5}
+#startCinematic .count strong{display:block;font-size:clamp(38px,9vw,68px);line-height:1.02;margin-top:2px}
+#startCinematic .versus{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;gap:.12em;font-weight:1000;font-size:clamp(48px,13vw,100px);line-height:1;opacity:0;white-space:nowrap;z-index:2}
+#startCinematic .v{color:#42caff;text-shadow:0 0 24px #168ec4}#startCinematic .s{color:#ff82bc;text-shadow:0 0 24px #e85c9b}
+#startCinematic .names{position:absolute;inset:50% 4% auto;transform:translateY(-50%);height:0;display:block;text-align:center;font-size:clamp(12px,3.2vw,20px);font-weight:850;z-index:1}
+#startCinematic .name-list{position:absolute;top:0;transform:translateY(-50%);width:calc(50% - clamp(36px,9vw,66px));display:flex;flex-direction:column;justify-content:center;gap:clamp(5px,1.3vh,10px);overflow-wrap:anywhere;line-height:1.15}
+#startCinematic #startNamesLeft{left:0;text-align:right;align-items:flex-end;padding-right:clamp(8px,2.4vw,20px)}
+#startCinematic #startNamesRight{right:0;text-align:left;align-items:flex-start;padding-left:clamp(8px,2.4vw,20px)}
+#startCinematic .name-list>div{max-width:100%;overflow-wrap:anywhere}
 #startCinematic .loading{position:absolute;bottom:8vh;left:5%;right:5%;text-align:center}
 #startCinematic .loading strong{display:block;color:#fff;font-size:clamp(17px,4vw,24px);letter-spacing:3px}
 #startCinematic .loading span{display:block;margin-top:8px;color:#cbd5e1;font-size:clamp(12px,3vw,16px)}
 #startCinematic .sketch{animation:cinSketch 1.15s cubic-bezier(.2,.75,.25,1) both}
+#startCinematic .versus.sketch{animation:cinSketchCentered 1.15s cubic-bezier(.2,.75,.25,1) both}
+@keyframes cinSketchCentered{0%{opacity:0;clip-path:inset(0 100% 0 0);filter:blur(4px);transform:translate(-50%,-50%) translateX(-8px)}65%{opacity:1;filter:blur(0);transform:translate(-50%,-50%)}100%{opacity:1;clip-path:inset(0 0 0 0);filter:blur(0);transform:translate(-50%,-50%)}}
 @keyframes cinSketch{0%{opacity:0;clip-path:inset(0 100% 0 0);filter:blur(4px);transform:translateX(-8px)}65%{opacity:1;filter:blur(0)}100%{opacity:1;clip-path:inset(0 0 0 0);transform:translateX(0)}}
 #startCinematic.fadeout .versus,#startCinematic.fadeout .names,#startCinematic.fadeout .loading{animation:cinTextOut 5s linear forwards}
 @keyframes cinTextOut{to{opacity:0}}
@@ -1070,8 +1075,9 @@ function beginStartCinematic(onSwitch=()=>{},onEnd=()=>{}){
    if(di!==lastDetail){detail.textContent=details[di];lastDetail=di}
    if(elapsed>=6&&!vs.classList.contains('sketch')){vs.classList.add('sketch');vs.style.opacity='1'}
    // Draw team/player names in a deliberate stagger, completing by second 24.
-   const total=Math.max(1,names.left.length+names.right.length),step=18/total;
-   [...left.children,...right.children].forEach((node,i)=>{const delay=6+i*step;if(elapsed>=delay&&!node.classList.contains('sketch'))node.classList.add('sketch')});
+   const ordered=[...left.children,...right.children],total=Math.max(1,ordered.length),step=16/total;
+   // VS sweeps in at second 6; player names begin only after it, then reveal evenly through second 24.
+   ordered.forEach((node,i)=>{const delay=8+i*step;if(elapsed>=delay&&!node.classList.contains('sketch'))node.classList.add('sketch')});
   }
   if(!switched&&elapsed>=15){switched=true;onSwitch()}
   if(elapsed>=25&&!el.classList.contains('fadeout'))el.classList.add('fadeout');
