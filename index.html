@@ -1175,8 +1175,7 @@ setInterval(async()=>{
     if(room.status==='playing'){
      if(previous?.status!=='playing'){firstSOSAnnounced=false;combo=0}
      if(screen!=='game'){
-      syncFromRoom(room);showScreen('game');
-      if(previous?.status!=='playing')welcomeVoice();
+      if(previous?.status!=='playing')startRemoteRoomCinematic();else{syncFromRoom(room);showScreen('game')}
      }else syncFromRoom(room);
     }else if(room.status==='finished'&&screen==='game'){syncFromRoom(room);finishGame()}
    }
@@ -1205,8 +1204,7 @@ function setupRealtime(){
   if(room.status==='playing'){
    if(previousStatus!=='playing'){firstSOSAnnounced=false;combo=0}
    if(screen!=='game'){
-    syncFromRoom(room);showScreen('game');
-    if(previousStatus!=='playing')welcomeVoice();
+    if(previousStatus!=='playing')startRemoteRoomCinematic();else{syncFromRoom(room);showScreen('game')}
    }else if(changed){
     announceRemoteCardEvent(previous,room);
     announceRemoteRoomMove(previous,room);
@@ -1227,6 +1225,11 @@ function welcomeVoice(){
  announce('SELAMAT DATANG','Selamat datang di S.O.S game',false);
  say('Selamat datang di S.O.S game');
 }
+function startRemoteRoomCinematic(){
+ if(startCinematicRunning)return;
+ if(typeof setBgm==='function')setBgm('game');
+ beginStartCinematic(()=>{showScreen('game');syncFromRoom(room)},()=>{welcomeVoice();announce('GAME DIMULAI','Pertandingan dimulai!')});
+}
 function updateExpiry(){if(!room)return;let left=Math.max(0,new Date(room.expires_at).getTime()-Date.now()),m=Math.floor(left/60000),s=Math.floor(left%60000/1000);$('roomExpiry').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');if(left===0&&room.status==='lobby')$('roomExpiry').textContent='EXPIRED'}
 $('roomStart').onclick=async()=>{
  if(!host||!roomId||!sb)return;
@@ -1239,11 +1242,11 @@ $('roomStart').onclick=async()=>{
   let order;if(isTeamRoom()){const n=teamCounts().S;order=[];for(let seat=1;seat<=n;seat++)for(const side of ['S','O']){const player=players.find(p=>p.team_side===side&&Number(p.team_seat)===seat);if(player)order.push(player.user_id)}}else order=players.map(p=>p.user_id).filter(Boolean);
   if(order.length<2){alert('Data user_id pemain tidak lengkap.');return}
   const scores=isTeamRoom()?{TEAM_S:0,TEAM_O:0}:Object.fromEntries(order.map(id=>[id,0]));
-  const nextRoom={status:'playing',board:Array(size*size).fill(null),scores,team_mode:room.team_mode||'solo',players_order:order,current_turn:0,turn_started_at:new Date().toISOString(),board_size:size,surrendered_players:[],draw_votes:{},draw_cooldowns:{},draw_request_by:null,draw_request_at:null,result_reason:null,first_sos_player_id:null};levelBeforeMatch=Number(accountState?.level||1);gameFinished=false;$('backLobby').style.display='none';
+  const nextRoom={status:'playing',board:Array(size*size).fill(null),scores,team_mode:room.team_mode||'solo',players_order:order,current_turn:0,turn_started_at:new Date(Date.now()+35000).toISOString(),board_size:size,surrendered_players:[],draw_votes:{},draw_cooldowns:{},draw_request_by:null,draw_request_at:null,result_reason:null,first_sos_player_id:null};levelBeforeMatch=Number(accountState?.level||1);gameFinished=false;$('backLobby').style.display='none';
   const r=await sb.from('sos_rooms').update(nextRoom).eq('id',roomId).eq('host_id',user.id).select('*').maybeSingle();
   if(r.error){alert('Gagal memulai game: '+r.error.message);return}
   if(!r.data){alert('Database menolak perubahan room. Periksa UPDATE RLS tabel sos_rooms.');return}
-  room=r.data;syncFromRoom(room);if(typeof setBgm==='function')setBgm('game');beginStartCinematic(()=>{showScreen('game');syncFromRoom(room)},()=>{welcomeVoice();announce('GAME DIMULAI','Pertandingan dimulai!')});
+  room=r.data;syncFromRoom(room);if(typeof setBgm==='function')setBgm('game');beginStartCinematic(()=>{showScreen('game');syncFromRoom(room)},async()=>{if(host&&roomId&&room?.status==='playing'){try{const started=new Date().toISOString();const upd=await sb.from('sos_rooms').update({turn_started_at:started}).eq('id',roomId).eq('status','playing').select('*').maybeSingle();if(!upd.error&&upd.data){room=upd.data;syncFromRoom(room)}}catch(e){console.warn('Gagal memulai timer giliran setelah efek:',e)}}welcomeVoice();announce('GAME DIMULAI','Pertandingan dimulai!')});
  }catch(e){alert('Gagal memulai game: '+(e?.message||String(e)))}
  finally{if(room?.status!=='playing'){btn.disabled=false;btn.textContent='MULAI GAME'}else{btn.disabled=true;btn.textContent='GAME DIMULAI'}}
 };
@@ -1310,7 +1313,7 @@ async function useGameCard(it){
 function syncFromRoom(r){if(!r)return;if(r.status==='playing'&&levelBeforeMatch===null)levelBeforeMatch=Number(accountState?.level||1);window.sosRelicActive=r.relic_state&&['combo','multiple','steal','tactic','relic-k'].includes(r.relic_state.type)?{...r.relic_state}:null;window.sosSkipRelic=r.relic_state?.type==='skip'?{level:Number(r.relic_state.level)||1,targetId:r.relic_state.targetId}:null;size=Number(r.board_size)||size||7;board=Array.isArray(r.board)?r.board:Array(size*size).fill(null);scores=r.scores||{};currentTurn=Number(r.current_turn)||0;$('boardInfo').textContent='Papan '+size+' × '+size;players=players.length?players:(r.players_order||[]).map(id=>({user_id:id,id,nickname:id===user?.id?nickname:'Pemain'}));if(!players.length)players=(r.players_order||[]).map(id=>({user_id:id,id,nickname:id===user?.id?nickname:'Player'}));renderBoard();renderScores();updateTurnUI();renderGameCards();updateOnlineGameActions();if(r.status==='playing')$('gameModeLabel').textContent=(isTeamRoom(r)?'MODE TIM S vs O':'ONLINE MATCH')+' · '+r.code}
 function currentPlayer(){if(mode==='online'){let id=room?.players_order?.[currentTurn];return players.find(p=>p.user_id===id)||{user_id:id,nickname:'Pemain'}}return players[currentTurn]||players[0]}
 function turnName(){let p=currentPlayer();return mode==='online'&&p.user_id===user?.id?'Kamu':p.nickname}
-function updateTurnUI(){let p=currentPlayer(),mine=(mode==='offline'||p.user_id===user?.id)&&!(mode==='online'&&onlineSurrendered().includes(user?.id));const boardEl=$('board');if(boardEl)boardEl.classList.toggle('my-turn',mine);if(boardEl)boardEl.classList.toggle('wait-turn',!mine);$('turnTitle').textContent='Giliran: '+turnName();$('turnSub').textContent=mine?'Pilih S atau O, lalu pilih kotak.':'Menunggu '+p.nickname+' bermain…';$('gameHint').textContent=mine?'Klik kotak kosong untuk menaruh huruf '+chosen+'.':mode==='online'?'Giliran pemain lain.':'Giliran pemain lain.';$('chooseS').disabled=!mine;$('chooseO').disabled=!mine;$('chooseS').classList.toggle('selected-letter',mine&&chosen==='S');$('chooseO').classList.toggle('selected-letter',mine&&chosen==='O');document.querySelectorAll('.cell').forEach(c=>c.disabled=!!c.dataset.filled||!mine||moveLock);if(mode==='online'){let start=room?.turn_started_at?new Date(room.turn_started_at).getTime():Date.now();turnDeadline=start+30000;updateTurnTimer()}else $('turnTimer').textContent='∞'}
+function updateTurnUI(){let p=currentPlayer(),waitingForStart=mode==='online'&&!!room?.turn_started_at&&Date.parse(room.turn_started_at)>Date.now(),mine=(mode==='offline'||p.user_id===user?.id)&&!(mode==='online'&&onlineSurrendered().includes(user?.id))&&!waitingForStart;const boardEl=$('board');if(boardEl)boardEl.classList.toggle('my-turn',mine);if(boardEl)boardEl.classList.toggle('wait-turn',!mine);$('turnTitle').textContent='Giliran: '+turnName();$('turnSub').textContent=mine?'Pilih S atau O, lalu pilih kotak.':'Menunggu '+p.nickname+' bermain…';$('gameHint').textContent=mine?'Klik kotak kosong untuk menaruh huruf '+chosen+'.':mode==='online'?'Giliran pemain lain.':'Giliran pemain lain.';$('chooseS').disabled=!mine;$('chooseO').disabled=!mine;$('chooseS').classList.toggle('selected-letter',mine&&chosen==='S');$('chooseO').classList.toggle('selected-letter',mine&&chosen==='O');document.querySelectorAll('.cell').forEach(c=>c.disabled=!!c.dataset.filled||!mine||moveLock);if(mode==='online'){let start=room?.turn_started_at?new Date(room.turn_started_at).getTime():Date.now();turnDeadline=start+30000;updateTurnTimer()}else $('turnTimer').textContent='∞'}
 $('chooseS').onclick=()=>{chosen='S';updateTurnUI();$('gameHint').textContent='Huruf dipilih: S'};
 $('chooseO').onclick=()=>{chosen='O';updateTurnUI();$('gameHint').textContent='Huruf dipilih: O'};
 function renderBoard(){let b=$('board');b.style.setProperty('--board-size',size);b.style.gridTemplateColumns=`repeat(${size},minmax(0,1fr))`;b.style.gridTemplateRows=`repeat(${size},minmax(0,1fr))`;b.style.width='100%';b.style.height='100%';b.innerHTML='';$('lines').innerHTML='';board=board||Array(size*size).fill(null);for(let i=0;i<size*size;i++){let btn=document.createElement('button');btn.className='cell'+(board[i]?' '+board[i].toLowerCase():'');btn.dataset.filled=board[i]?'1':'';if(board[i]){btn.textContent=board[i]}else{let number=document.createElement('span');number.className='cell-number';number.textContent=String(i+1);btn.append(number)}btn.setAttribute('aria-label','Petak nomor '+(i+1)+(board[i]?' berisi '+board[i]:''));btn.onclick=()=>makeMove(i);b.append(btn)}drawLines();updateTurnUI()}
@@ -1571,10 +1574,11 @@ function updateTurnTimer(){
  // Timestamp masa depan memang digunakan oleh kartu tambah waktu; jangan dipotong ke waktu sekarang.
  const start=Number.isFinite(rawStart)?rawStart:Date.now();
  turnDeadline=start+30000;
- const left=Math.max(0,Math.ceil((turnDeadline-Date.now())/1000));
+ const now=Date.now(),waitingForTurnStart=rawStart>now;
+ const left=waitingForTurnStart?30:Math.max(0,Math.ceil((turnDeadline-now)/1000));
  $('turnTimer').textContent='00:'+String(left).padStart(2,'0');
- $('turnTimer').classList.toggle('warn',left<=8);
- if(left===0&&host)skipExpiredTurn();
+ $('turnTimer').classList.toggle('warn',!waitingForTurnStart&&left<=8);
+ if(!waitingForTurnStart&&left===0&&host)skipExpiredTurn();
 }
 setInterval(()=>{if(room){updateExpiry();if(mode==='online'&&screen==='game')updateTurnTimer()}},500);
 
