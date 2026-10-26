@@ -538,6 +538,25 @@ body:not(.woman-theme) #sosSpotlight.relic-k .relic-final-k{--relic-k-color:#00e
 @keyframes rkBeam5{0%,18%{left:-70%;opacity:0}28%{opacity:1}68%{left:120%;opacity:1}82%,100%{left:150%;opacity:0}}
 @keyframes rkLetterSketch{0%{opacity:0;filter:blur(7px);clip-path:inset(0 100% 0 0);transform:translateY(8px)}45%,72%{opacity:1;filter:brightness(2.2) blur(0);clip-path:inset(0 0 0 0);transform:translateY(-1px)}100%{opacity:0;filter:blur(3px);clip-path:inset(0 0 0 100%);transform:translateY(0)}}
 </style>
+
+<style>
+#startCinematic{position:fixed;inset:0;z-index:200000;display:none;pointer-events:auto;background:transparent;opacity:1;color:#fff;font-family:inherit;isolation:isolate}#startCinematic:before{content:'';position:absolute;inset:0;background:#000;opacity:var(--cin-darkness,0);z-index:-1;pointer-events:none}
+#startCinematic.active{display:block}
+#startCinematic .count{position:absolute;top:max(7vh,env(safe-area-inset-top));left:0;right:0;text-align:center;font-weight:1000;font-size:clamp(16px,4vw,27px);text-shadow:0 2px 15px #000}
+#startCinematic .count strong{display:block;font-size:clamp(42px,10vw,76px);line-height:1.1}
+#startCinematic .versus{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;gap:.12em;font-weight:1000;font-size:clamp(48px,13vw,100px);opacity:0;white-space:nowrap}
+#startCinematic .v{color:#42caff;text-shadow:0 0 24px #168ec4}.sos-vs .s{color:#ff82bc;text-shadow:0 0 24px #e85c9b}
+#startCinematic .names{position:absolute;top:calc(50% + clamp(48px,12vw,85px));left:5%;right:5%;display:grid;grid-template-columns:1fr auto 1fr;gap:12px;text-align:center;font-size:clamp(12px,3.2vw,20px);font-weight:850}
+#startCinematic .name-list{display:flex;flex-direction:column;gap:7px;overflow-wrap:anywhere}
+#startCinematic .loading{position:absolute;bottom:8vh;left:5%;right:5%;text-align:center}
+#startCinematic .loading strong{display:block;color:#fff;font-size:clamp(17px,4vw,24px);letter-spacing:3px}
+#startCinematic .loading span{display:block;margin-top:8px;color:#cbd5e1;font-size:clamp(12px,3vw,16px)}
+#startCinematic .sketch{animation:cinSketch 1.15s cubic-bezier(.2,.75,.25,1) both}
+@keyframes cinSketch{0%{opacity:0;clip-path:inset(0 100% 0 0);filter:blur(4px);transform:translateX(-8px)}65%{opacity:1;filter:blur(0)}100%{opacity:1;clip-path:inset(0 0 0 0);transform:translateX(0)}}
+#startCinematic.fadeout .versus,#startCinematic.fadeout .names,#startCinematic.fadeout .loading{animation:cinTextOut 5s linear forwards}
+@keyframes cinTextOut{to{opacity:0}}
+@media(prefers-reduced-motion:reduce){#startCinematic .sketch{animation-duration:1.15s}}
+</style>
 </head>
 <body>
 <!-- Background music: a single manager switches tracks so they never overlap. -->
@@ -1015,7 +1034,61 @@ $('authForm').onsubmit=async e=>{e.preventDefault();if(!sb&&!initSupabase())retu
 function afterAuth(){if(!user)return;updateInboxBadge();recordMissionEvent('login');$('headerUser').textContent=user.email||'Player';$('lobbyWelcomeEmail').textContent=user.email||'Player';$('logoutBtn').style.display='inline-block';showScreen('lobby');renderOfflineNames()}
 $('logoutBtn').onclick=async()=>{if(sb)await sb.auth.signOut();user=null;cleanupRealtime();$('headerUser').textContent='Belum login';$('logoutBtn').style.display='none';showScreen('auth')};
 window.addEventListener('load',async()=>{if(initSupabase()){try{let r=await sb.auth.getSession();if(r.data?.session){user=r.data.session.user;afterAuth()}}catch(e){$('authMsg').textContent='Tidak dapat memeriksa sesi login. Periksa koneksi internet.'}}renderOfflineNames();setAuthUI();updateInboxBadge()});
+
+let startCinematicRunning=false,startCinematicTimer=null;
+function cinematicNames(){
+ const all=(players||[]).map(p=>({name:p.nickname||'Pemain',side:String(p.team_side||'').toUpperCase(),id:p.user_id||p.id}));
+ if(mode==='online'&&isTeamRoom()){
+  return {left:all.filter(p=>p.side==='S').map(p=>p.name),right:all.filter(p=>p.side==='O').map(p=>p.name)};
+ }
+ const me=mode==='online'?all.find(p=>p.id===user?.id):null;
+ return {left:me?[me.name]:all.slice(0,1).map(p=>p.name),right:me?all.filter(p=>p.id!==user?.id).map(p=>p.name):all.slice(1).map(p=>p.name)};
+}
+function beginStartCinematic(onSwitch=()=>{},onEnd=()=>{}){
+ if(startCinematicRunning)return;startCinematicRunning=true;
+ const el=document.getElementById('startCinematic'),count=document.getElementById('startCountdown'),vs=document.getElementById('startVs'),left=document.getElementById('startNamesLeft'),right=document.getElementById('startNamesRight'),detail=document.getElementById('startLoadingDetail');
+ if(!el){onSwitch();onEnd();startCinematicRunning=false;return}
+ const names=cinematicNames(),team=mode==='online'&&isTeamRoom();
+ left.innerHTML='';right.innerHTML='';
+ const addNames=(host,arr)=>arr.forEach((name,i)=>{const n=document.createElement('div');n.textContent=name;n.style.color=getComputedStyle(document.body).getPropertyValue('--a').trim()||'#65f4ff';host.append(n)});
+ addNames(left,names.left);addNames(right,names.right);
+ el.classList.remove('fadeout');el.classList.add('active');el.style.opacity='1';el.style.transition='none';
+ // Lock all page controls/touch gestures for the complete cinematic.
+ document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';
+ const details=['Sedang menata papan…','Sedang menyelaraskan pemain…','Sedang memeriksa giliran…','Sedang menyiapkan arena…','Sedang memperbaiki tombol…','Sedang memuat data pertandingan…'];
+ let switched=false,started=performance.now(),lastDetail=-1;
+ function tick(now){
+  if(!startCinematicRunning)return;
+  const elapsed=(now-started)/1000,remaining=Math.max(0,30-Math.floor(elapsed));
+  count.textContent=String(remaining);
+  count.style.color=remaining>=16?'#50f58b':remaining>=6?'#ffe45c':'#ff526b';
+  // Fade darkness in 0–5s, full black 5–25s, fade out 25–30s.
+  const opacity=elapsed<5?elapsed/5:elapsed<25?1:Math.max(0,1-(elapsed-25)/5);
+  el.style.setProperty('--cin-darkness',String(opacity));el.style.setProperty('background','transparent');el.style.setProperty('isolation','isolate');el.style.setProperty('--cin-op',String(opacity));
+  if(elapsed>=6&&elapsed<25){
+   const di=Math.floor((elapsed-6)/2)%details.length;
+   if(di!==lastDetail){detail.textContent=details[di];lastDetail=di}
+   if(elapsed>=6&&!vs.classList.contains('sketch')){vs.classList.add('sketch');vs.style.opacity='1'}
+   // Draw team/player names in a deliberate stagger, completing by second 24.
+   const total=Math.max(1,names.left.length+names.right.length),step=18/total;
+   [...left.children,...right.children].forEach((node,i)=>{const delay=6+i*step;if(elapsed>=delay&&!node.classList.contains('sketch'))node.classList.add('sketch')});
+  }
+  if(!switched&&elapsed>=15){switched=true;onSwitch()}
+  if(elapsed>=25&&!el.classList.contains('fadeout'))el.classList.add('fadeout');
+  if(elapsed<30){startCinematicTimer=requestAnimationFrame(tick);return}
+  el.style.setProperty('--cin-darkness','0');el.classList.remove('active','fadeout');vs.classList.remove('sketch');vs.style.opacity='0';
+  document.documentElement.style.overflow='';document.body.style.overflow='';
+  startCinematicRunning=false;startCinematicTimer=null;onEnd();
+ }
+ // Countdown begins at the exact start-button action.
+ startCinematicTimer=requestAnimationFrame(tick);
+}
 function startGame(initialBoard,initialScores,initialTurn=0){
+ if(startCinematicRunning)return;
+ if(typeof setBgm==='function')setBgm('game');
+ beginStartCinematic(()=>{startGameImmediate(initialBoard,initialScores,initialTurn)},()=>{announce('GAME DIMULAI',turnName()+' memulai permainan!');if(typeof welcomeVoice==='function')welcomeVoice()});
+}
+function startGameImmediate(initialBoard,initialScores,initialTurn=0){
  clearResultTimers();closeGameResult();firstSOSAnnounced=false;gameFinished=false;moveLock=false;skipLock=false;
  board=Array.isArray(initialBoard)?initialBoard.slice():Array(size*size).fill(null);
  scores=initialScores&&typeof initialScores==='object'?{...initialScores}:Object.fromEntries(players.map(p=>[p.id,0]));
@@ -1025,7 +1098,7 @@ function startGame(initialBoard,initialScores,initialTurn=0){
  showScreen('game');renderBoard();renderScores();updateTurnUI();renderGameCards();
  $('surrenderGameBtn').style.display='none';$('drawGameBtn').style.display='none';
  if(typeof setBgm==='function')setBgm('game');
- announce('GAME DIMULAI',turnName()+' memulai permainan!');
+
 }
 function renderOfflineNames(){let n=+$('offlinePlayers').value;$('offlineNames').innerHTML='';for(let i=0;i<n;i++){let d=document.createElement('div');d.innerHTML='<label>Nama pemain '+(i+1)+'</label><input maxlength="18" value="'+(i===0?'Pemain 1':i===1?'Pemain 2':'Pemain '+(i+1))+'" data-offname="'+i+'">';$('offlineNames').append(d)}}
 $('offlinePlayers').onchange=renderOfflineNames;
@@ -1163,7 +1236,7 @@ $('roomStart').onclick=async()=>{
   const r=await sb.from('sos_rooms').update(nextRoom).eq('id',roomId).eq('host_id',user.id).select('*').maybeSingle();
   if(r.error){alert('Gagal memulai game: '+r.error.message);return}
   if(!r.data){alert('Database menolak perubahan room. Periksa UPDATE RLS tabel sos_rooms.');return}
-  room=r.data;syncFromRoom(room);showScreen('game');welcomeVoice();
+  room=r.data;syncFromRoom(room);if(typeof setBgm==='function')setBgm('game');beginStartCinematic(()=>{showScreen('game');syncFromRoom(room)},()=>{welcomeVoice();announce('GAME DIMULAI','Pertandingan dimulai!')});
  }catch(e){alert('Gagal memulai game: '+(e?.message||String(e)))}
  finally{if(room?.status!=='playing'){btn.disabled=false;btn.textContent='MULAI GAME'}else{btn.disabled=true;btn.textContent='GAME DIMULAI'}}
 };
@@ -1776,97 +1849,10 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
 })();
 </script>
 
-<style id="sos-start-cinematic-style">
-#sosStartCinematic{position:fixed;inset:0;z-index:200000;display:none;pointer-events:auto;background:#000;opacity:0;overflow:hidden;color:#fff;font-family:inherit}
-#sosStartCinematic.active{display:block}
-#sosStartCinematic .sos-start-count{position:absolute;top:max(14px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);font-size:clamp(27px,7vw,46px);font-weight:1000;font-variant-numeric:tabular-nums;text-shadow:0 0 18px currentColor}
-#sosStartCinematic .sos-start-vs{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:clamp(58px,17vw,112px);font-weight:1000;letter-spacing:.08em;opacity:0;white-space:nowrap;text-shadow:0 0 22px #fff6}
-#sosStartCinematic .sos-start-vs .v{color:#42caff;text-shadow:0 0 26px #168ec4}
-#sosStartCinematic .sos-start-vs .s{color:#ff82bc;text-shadow:0 0 26px #e85c9b}
-#sosStartCinematic .sos-start-team{position:absolute;top:48%;width:36%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;text-align:center;font-size:clamp(12px,3.2vw,20px);font-weight:900}
-#sosStartCinematic .left{right:calc(50% + 70px)}#sosStartCinematic .right{left:calc(50% + 70px)}
-#sosStartCinematic .sos-start-team span{opacity:0;clip-path:inset(0 100% 0 0);animation:sosSketchIn .8s cubic-bezier(.2,.8,.2,1) forwards;text-shadow:0 0 14px currentColor;overflow-wrap:anywhere}
-#sosStartCinematic .sos-start-loading{position:absolute;bottom:12%;left:0;right:0;text-align:center;opacity:0}
-#sosStartCinematic .sos-start-loading b{display:block;font-size:clamp(16px,4vw,22px);letter-spacing:.2em;color:#65f4ff}
-#sosStartCinematic .sos-start-loading span{display:block;margin:8px auto 0;padding:0 18px;color:#e1e8ff;font-size:clamp(12px,3vw,16px)}
-#sosStartCinematic.reveal .sos-start-vs{animation:sosVsSketch 1.05s cubic-bezier(.2,.8,.2,1) 6s forwards}
-#sosStartCinematic.reveal .sos-start-loading{animation:sosLoadIn .5s ease 5s forwards}
-#sosStartCinematic.fadeout .sos-start-vs,#sosStartCinematic.fadeout .sos-start-team,#sosStartCinematic.fadeout .sos-start-loading{animation:sosFadeText 5s linear forwards!important}
-@keyframes sosSketchIn{to{opacity:1;clip-path:inset(0 0 0 0)}}
-@keyframes sosVsSketch{0%{opacity:0;clip-path:inset(0 100% 0 0);filter:blur(8px);transform:translate(-50%,-50%) scale(.8)}70%{opacity:1;filter:blur(0)}100%{opacity:1;clip-path:inset(0 0 0 0);transform:translate(-50%,-50%) scale(1)}}
-@keyframes sosLoadIn{to{opacity:1}}@keyframes sosFadeText{to{opacity:0}}
-@media(max-width:480px){#sosStartCinematic .left{right:calc(50% + 44px)}#sosStartCinematic .right{left:calc(50% + 44px)}#sosStartCinematic .sos-start-team{width:34%}}
-</style>
-<script id="sos-start-cinematic-engine">
-(()=>{
-let busy=false,releaseScreen=null,startedAt=0,tick=null,loadingTick=null,screenFn=null;
-const notes=['Sedang menata papan','Sedang memperbaiki tombol','Sedang menyelaraskan giliran','Sedang menyiapkan arena','Sedang memeriksa koneksi pemain','Sedang menyiapkan efek SOS','Sedang menyinkronkan skor','Sedang memuat data pemain','Sedang mengatur pencahayaan arena'];
-function ensure(){
- let el=document.getElementById('sosStartCinematic');if(el)return el;
- el=document.createElement('div');el.id='sosStartCinematic';el.innerHTML='<div class="sos-start-count">30</div><div class="sos-start-team left"></div><div class="sos-start-vs"><span class="v">V</span><span class="s">S</span></div><div class="sos-start-team right"></div><div class="sos-start-loading"><b>MEMUAT</b><span></span></div>';
- document.body.append(el);return el;
-}
-function getNames(){
- const ps=Array.isArray(window.players)?window.players:[];
- const safe=p=>String(p?.nickname||p?.name||'Pemain').slice(0,24);
- if(window.room&&String(window.room.team_mode||'solo').toLowerCase()==='team'){
-  return {left:ps.filter(p=>String(p.team_side||'').toUpperCase()==='S').map(safe),right:ps.filter(p=>String(p.team_side||'').toUpperCase()==='O').map(safe)};
- }
- const me=ps.findIndex(p=>p?.id&&p.id===window.user?.id);
- const ordered=ps.slice();if(me>0)ordered.unshift(ordered.splice(me,1)[0]);
- return {left:ordered.length?[safe(ordered[0])]:['Pemain 1'],right:ordered.slice(1).map(safe).length?ordered.slice(1).map(safe):['Pemain 2']};
-}
-function paintNames(el){
- const n=getNames(),l=el.querySelector('.left'),r=el.querySelector('.right');l.innerHTML='';r.innerHTML='';
- const add=(box,names,delayStart)=>names.forEach((name,i)=>{const sp=document.createElement('span');sp.textContent=name;sp.style.animationDelay=(delayStart+i*.48)+'s';sp.style.color=getComputedStyle(document.body).getPropertyValue('--a').trim()||'#65f4ff';box.append(sp)});
- // team S uses cyan; team O pink; solo names use active theme color
- add(l,n.left,7.1);add(r,n.right,7.1+n.left.length*.48);
- if(window.room&&String(window.room.team_mode||'solo').toLowerCase()==='team'){l.style.color='#42caff';r.style.color='#ff82bc';l.querySelectorAll('span').forEach(x=>x.style.color='#42caff');r.querySelectorAll('span').forEach(x=>x.style.color='#ff82bc')}
-}
-function run(){
- if(busy)return false;busy=true;startedAt=performance.now();const el=ensure();el.className='active';el.style.opacity='0';el.querySelector('.sos-start-count').textContent='30';paintNames(el);
- // Game music begins immediately on the real start action.
- try{if(typeof window.setBgm==='function')window.setBgm('game')}catch(e){}
- const originalShow=window.showScreen;
- // Fade to black during seconds 1–5; switch screens invisibly at second 15.
- el.style.transition='opacity 5s linear';requestAnimationFrame(()=>el.style.opacity='1');
- el.classList.add('reveal');
- let lastNote=-1, darknessFading=false;
- tick=setInterval(()=>{
-  const elapsed=(performance.now()-startedAt)/1000,remain=Math.max(0,Math.ceil(30-elapsed));
-  const c=el.querySelector('.sos-start-count');c.textContent=remain;
-  c.style.color=remain>=16?'#53ff8b':remain>=6?'#ffe45c':'#ff526e';
-  if(elapsed>=5&&elapsed<25)el.querySelector('.sos-start-loading').style.opacity='1';
-  if(elapsed>=5&&elapsed<25){const idx=Math.floor((elapsed-5)/2)%notes.length;if(idx!==lastNote){el.querySelector('.sos-start-loading span').textContent=notes[idx];lastNote=idx}}
-  if(elapsed>=24)el.classList.add('fadeout');
-  if(elapsed>=25&&!darknessFading){darknessFading=true;el.style.opacity='0';}
-  if(elapsed>=30){
-   clearInterval(tick);tick=null;
-   el.querySelector('.sos-start-vs').style.opacity='0';el.querySelectorAll('.sos-start-team span').forEach(x=>x.style.opacity='0');el.querySelector('.sos-start-loading').style.opacity='0';
-   el.style.transition='none';el.style.opacity='0';el.classList.remove('active','reveal','fadeout');
-   // Restore interaction only after every overlay element has disappeared.
-   if(releaseScreen){releaseScreen();releaseScreen=null}
-   busy=false;
-  }
- },50);
- return true;
-}
-// Capture screen changes and delay the room->game switch to exactly 15 seconds.
-const origShow=window.showScreen;
-if(typeof origShow==='function'){
- window.showScreen=function(s){
-  if(s==='game'&&busy){return;}
-  if(s==='game'&&!busy){
-   // Save the intended transition; execute it at t=15 under full darkness.
-   const args=arguments;const ctx=this;
-   run();releaseScreen=()=>origShow.apply(ctx,args);
-   setTimeout(()=>{if(busy&&releaseScreen){const fn=releaseScreen;releaseScreen=null;fn()}},15000);
-   return;
-  }
-  return origShow.apply(this,arguments);
- };
-}
-})();
-</script>
-
+<div id="startCinematic" aria-live="polite" aria-label="Memulai permainan">
+ <div class="count">game dimulai dalam<strong id="startCountdown">30</strong></div>
+ <div class="versus" id="startVs"><span class="v">V</span><span class="s">S</span></div>
+ <div class="names"><div class="name-list" id="startNamesLeft"></div><span></span><div class="name-list" id="startNamesRight"></div></div>
+ <div class="loading"><strong>MEMUAT</strong><span id="startLoadingDetail">Sedang menata papan…</span></div>
+</div>
 </body></html>
