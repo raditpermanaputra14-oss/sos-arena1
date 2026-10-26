@@ -317,7 +317,7 @@ body.woman-theme .cell.o{color:#ff82bc!important;text-shadow:0 0 12px #e85c9b77!
 
 
 #accountFeatureGrid .score{flex:1;min-width:90px}#accountFeatureGrid .score strong{font-size:18px}
-#featureModal.open{display:flex!important;z-index:99999!important}#featureModalBody .feature-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#ffffff08;flex-wrap:wrap}
+#featureModal.open{display:flex!important;z-index:99999!important}#featureModal>.panel{display:flex;flex-direction:column;min-height:0}#featureModalBody{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:8px}#featureModalBody .feature-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#ffffff08;flex-wrap:wrap}
 #featureModalBody .feature-row small{display:block;color:var(--muted);margin-top:4px}
 #featureModalBody .feature-row button{padding:9px 12px}
 
@@ -460,7 +460,7 @@ body.woman-theme #lobbyProgressActions button{border-color:#ff78bd99;background:
 body.woman-theme #lobbyProgressActions #openMissionsButton{border-color:#00e5ff99;background:linear-gradient(135deg,#07303d,#075568);color:#e4fcff}
 @media(max-width:480px){#lobbyFeatures{padding-top:116px!important}#lobbyProgressActions{top:58px;right:7px;gap:4px}#lobbyProgressActions button{height:34px;min-height:34px;width:124px;min-width:124px;padding:0 8px;font-size:10px;border-radius:9px}#lobbyCurrencyHud{left:7px;right:7px}}
 /* Unread inbox: dark pink pulsing ripple for masculine theme, cyan ripple for feminine theme. */
-#lobbyInboxButton[aria-label="Pesan, belum dibaca"]{position:relative;animation:inboxUnreadPulsePink 1.35s ease-out infinite;border-color:#d81b60!important;box-shadow:0 0 0 0 #d81b6077,0 0 22px #d81b6055!important}
+#lobbyInboxButton[aria-label="Pesan, belum dibaca"]{animation:inboxUnreadPulsePink 1.35s ease-out infinite;border-color:#d81b60!important;box-shadow:0 0 0 0 #d81b6077,0 0 22px #d81b6055!important}
 #lobbyInboxButton[aria-label="Pesan, belum dibaca"]:after{content:"";position:absolute;inset:-5px;border:2px solid #d81b60;border-radius:inherit;pointer-events:none;animation:inboxRipple 1.35s ease-out infinite}
 #lobbyInboxBadge{background:#d81b60!important;box-shadow:0 0 9px #ff2c80!important;animation:inboxBadgePulse 1s ease-in-out infinite}
 body.woman-theme #lobbyInboxButton[aria-label="Pesan, belum dibaca"]{animation:inboxUnreadPulseCyan 1.35s ease-out infinite;border-color:#00e5ff!important;box-shadow:0 0 0 0 #00e5ff88,0 0 22px #00e5ff66!important}
@@ -1454,7 +1454,24 @@ function renderLevelRewards(host,state){
  }
  const foot=document.createElement('p');foot.className='muted';foot.textContent='Daftar menampilkan level 2 sampai '+max+'. Level lanjutan akan tetap terbuka di daftar saat level akun meningkat.';host.append(foot)
 }
-async function openLevelRewards(){try{const state=await getMissionState();modal('🎁 HADIAH LEVEL',host=>renderLevelRewards(host,state))}catch(e){alert(e?.message||String(e))}}
+async function openLevelRewards(){
+ // Buka modal segera supaya tombol tidak terasa macet saat koneksi Supabase lambat.
+ modal('🎁 HADIAH LEVEL',host=>{
+  const loading=document.createElement('p');loading.className='muted';loading.setAttribute('role','status');loading.textContent='Memuat hadiah level dari server…';host.append(loading);
+ });
+ const host=$('featureModalBody');
+ try{
+  const state=await getMissionState();
+  if(!$('featureModal').classList.contains('open'))return;
+  renderLevelRewards(host,state);
+ }catch(e){
+  host.innerHTML='';
+  const message=document.createElement('p');message.className='muted';message.setAttribute('role','alert');
+  message.textContent='Hadiah belum dapat dimuat. Periksa koneksi internet dan pastikan SQL fitur hadiah sudah dijalankan di Supabase. Detail: '+(e?.message||String(e));
+  const retry=document.createElement('button');retry.type='button';retry.textContent='COBA LAGI';retry.onclick=()=>openLevelRewards();
+  host.append(message,retry);
+ }
+}
 function renderMissionList(host,state,scope){
  host.innerHTML='';const defs=scope==='daily'?DAILY_MISSION_DEFS:WEEKLY_MISSION_DEFS;const progress=state[scope==='daily'?'daily_progress':'weekly_progress']||{};const claimed=Array.isArray(state[scope==='daily'?'daily_claimed':'weekly_claimed'])?state[scope==='daily'?'daily_claimed':'weekly_claimed']:[];
  const reset=document.createElement('p');reset.className='muted';reset.textContent=scope==='daily'?'Reset harian setiap pukul 00.00 WIB berdasarkan waktu server.':'Reset mingguan setiap Senin pukul 00.00 WIB berdasarkan waktu server.';host.append(reset);
