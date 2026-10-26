@@ -695,23 +695,34 @@ function normalizeSpokenText(text){return String(text).replace(/S\s*\.\s*O\s*\.\
 function speakQueued(text){return new Promise(resolve=>{try{if(!('speechSynthesis'in window)){resolve();return}const u=new SpeechSynthesisUtterance(normalizeSpokenText(text));u.lang='id-ID';u.rate=1.03;u.pitch=1.08;let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(fallback);resolve()};u.onend=finish;u.onerror=finish;const fallback=setTimeout(finish,8000);speechSynthesis.speak(u)}catch(e){resolve()}})}
 function showRelicKStandalone(){
  try{
-  document.getElementById('relic-k-standalone-overlay')?.remove();
-  const woman=document.body.classList.contains('woman-theme');
-  const overlay=document.createElement('div');overlay.id='relic-k-standalone-overlay';
-  overlay.style.cssText='position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;background:transparent!important;opacity:1!important;pointer-events:none!important;isolation:isolate!important;';
-  const shade=document.createElement('div');shade.style.cssText='position:absolute!important;inset:0!important;background:#000!important;opacity:0!important;z-index:0!important;';overlay.appendChild(shade);
-  const beam=document.createElement('div');beam.style.cssText='position:absolute!important;z-index:2!important;top:-20%!important;bottom:-20%!important;left:-60%!important;width:45%!important;opacity:0!important;background:linear-gradient(90deg,transparent,#ff168f66,#fff,#00eaff,#ff168f66,transparent)!important;filter:blur(10px) brightness(3)!important;mix-blend-mode:screen!important;transform:skewX(-12deg)!important;';overlay.appendChild(beam);
-  const word=document.createElement('div');word.style.cssText='position:relative!important;z-index:3!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:.025em!important;width:100%!important;padding:0 8px!important;white-space:nowrap!important;font-family:Arial,sans-serif!important;font-size:clamp(38px,10vw,78px)!important;font-weight:1000!important;line-height:1!important;letter-spacing:.035em!important;';overlay.appendChild(word);
-  document.body.appendChild(overlay);
-  // Explicitly timed opacity curve: 0-2s fade to black, 2-3s hold, 3-5s fade out.
-  shade.animate([{opacity:0,offset:0},{opacity:.5,offset:.2},{opacity:.97,offset:.4},{opacity:1,offset:.6},{opacity:.55,offset:.8},{opacity:0,offset:1}],{duration:5000,easing:'linear',fill:'forwards'});
-  beam.animate([{left:'-60%',opacity:0},{left:'-20%',opacity:0,offset:.18},{left:'-5%',opacity:1,offset:.3},{left:'45%',opacity:1,offset:.58},{left:'120%',opacity:.8,offset:.8},{left:'150%',opacity:0}],{duration:5000,easing:'ease-in-out',fill:'forwards'});
-  const chars=['R','E','L','I','K'];
-  chars.forEach((ch,i)=>{const span=document.createElement('span');span.textContent=ch;span.style.cssText='display:inline-block!important;color:#fff!important;opacity:0!important;text-shadow:0 0 7px #fff,0 0 20px #fff,0 0 42px #69f5ff!important;';word.appendChild(span);span.animate([{opacity:0,clipPath:'inset(0 100% 0 0)',filter:'blur(8px)',transform:'translateY(8px)'},{opacity:1,clipPath:'inset(0 0 0 0)',filter:'brightness(2.4) blur(0)',transform:'translateY(0)',offset:.45},{opacity:1,clipPath:'inset(0 0 0 0)',filter:'brightness(1.4)',offset:.7},{opacity:0,clipPath:'inset(0 0 0 100%)',filter:'blur(5px)'}],{duration:850,delay:250+i*590,fill:'both',easing:'ease-in-out'});});
-  const k=document.createElement('span');k.textContent='K';const kc=woman?'#ff168f':'#00eaff';k.style.cssText=`display:inline-block!important;color:${kc}!important;font-size:1.65em!important;font-weight:1000!important;opacity:0!important;text-shadow:0 0 12px ${kc},0 0 30px ${kc},0 0 55px ${kc}!important;`;
-  word.appendChild(k);k.animate([{opacity:0,clipPath:'inset(0 100% 0 0)',filter:'blur(10px)',transform:'scale(.7)'},{opacity:1,clipPath:'inset(0 0 0 0)',filter:'brightness(3) blur(0)',transform:'scale(1.15)',offset:.5},{opacity:1,clipPath:'inset(0 0 0 0)',filter:'brightness(1.5)',transform:'scale(1)',offset:.78},{opacity:0,clipPath:'inset(0 0 0 100%)',filter:'blur(5px)',transform:'scale(.9)'}],{duration:1050,delay:3250,fill:'both',easing:'ease-in-out'});
-  setTimeout(()=>overlay.remove(),5200);
- }catch(err){console.error('Relik K effect failed:',err);}
+  document.getElementById("relic-k-standalone-overlay")?.remove();
+  const woman=document.body.classList.contains("woman-theme");
+  const kc=woman?"#ff168f":"#00eaff";
+  const ov=document.createElement("div");
+  ov.id="relic-k-standalone-overlay";
+  ov.style.cssText="position:fixed;inset:0;z-index:2147483647;pointer-events:none;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background 2s linear;";
+  const wrap=document.createElement("div");
+  wrap.style.cssText="display:flex;gap:.05em;font:1000 clamp(42px,11vw,82px)/1 Arial,sans-serif;";
+  ov.appendChild(wrap); document.body.appendChild(ov);
+  setTimeout(()=>ov.style.background="rgba(0,0,0,1)",20);
+  const letters=["R","E","L","I","K"];
+  letters.forEach((c,i)=>{
+    const s=document.createElement("span");
+    s.textContent=c;
+    s.style.cssText="opacity:0;color:#fff;text-shadow:0 0 8px #fff,0 0 24px #fff;transition:opacity .22s;";
+    wrap.appendChild(s);
+    setTimeout(()=>s.style.opacity="1",600+i*430);
+    setTimeout(()=>s.style.opacity="0",930+i*430);
+  });
+  const big=document.createElement("span");
+  big.textContent="K";
+  big.style.cssText=`opacity:0;color:${kc};font-size:1.7em;text-shadow:0 0 10px ${kc},0 0 30px ${kc};transition:opacity .25s;`;
+  wrap.appendChild(big);
+  setTimeout(()=>big.style.opacity="1",2850);
+  setTimeout(()=>big.style.opacity="0",3750);
+  setTimeout(()=>ov.style.background="rgba(0,0,0,0)",3000);
+  setTimeout(()=>ov.remove(),5100);
+ }catch(e){console.error(e);}
 }
 function showSOSSpotlight(title,darkness,withShade=true,color=''){
  if(/relik\s*k|phoenix/i.test(String(title||''))){showRelicKStandalone();return;}
