@@ -550,14 +550,14 @@ body:not(.woman-theme) #sosSpotlight.relic-k .relic-final-k{--relic-k-color:#00e
 #startCinematic .name-list{position:absolute;top:0;transform:translateY(-50%);width:calc(50% - clamp(36px,9vw,66px));display:flex;flex-direction:column;justify-content:center;gap:clamp(5px,1.3vh,10px);overflow-wrap:anywhere;line-height:1.15}
 #startCinematic #startNamesLeft{left:0;text-align:right;align-items:flex-end;padding-right:clamp(8px,2.4vw,20px)}
 #startCinematic #startNamesRight{right:0;text-align:left;align-items:flex-start;padding-left:clamp(8px,2.4vw,20px)}
-#startCinematic .name-list>div{max-width:100%;overflow-wrap:anywhere}
+#startCinematic .name-list>div{max-width:100%;overflow-wrap:anywhere;opacity:0;font-size:clamp(16px,4.5vw,29px);font-weight:950;line-height:1.12;text-shadow:0 2px 10px rgba(0,0,0,.95),0 0 10px currentColor}
 #startCinematic .loading{position:absolute;bottom:8vh;left:5%;right:5%;text-align:center}
 #startCinematic .loading strong{display:block;color:#fff;font-size:clamp(17px,4vw,24px);letter-spacing:3px}
 #startCinematic .loading span{display:block;margin-top:8px;color:#cbd5e1;font-size:clamp(12px,3vw,16px)}
 #startCinematic .sketch{animation:cinSketch 1.15s cubic-bezier(.2,.75,.25,1) both}
 #startCinematic .versus.sketch{animation:cinSketchCentered 1.15s cubic-bezier(.2,.75,.25,1) both}
 @keyframes cinSketchCentered{0%{opacity:0;clip-path:inset(0 100% 0 0);filter:blur(4px);transform:translate(-50%,-50%) translateX(-8px)}65%{opacity:1;filter:blur(0);transform:translate(-50%,-50%)}100%{opacity:1;clip-path:inset(0 0 0 0);filter:blur(0);transform:translate(-50%,-50%)}}
-@keyframes cinSketch{0%{opacity:0;clip-path:inset(0 100% 0 0);filter:blur(4px);transform:translateX(-8px)}65%{opacity:1;filter:blur(0)}100%{opacity:1;clip-path:inset(0 0 0 0);transform:translateX(0)}}
+@keyframes cinSketch{0%{opacity:0;clip-path:inset(0 100% 0 0);filter:blur(5px);transform:translateX(-12px)}65%{opacity:1;filter:blur(0)}100%{opacity:1;clip-path:inset(0 0 0 0);transform:translateX(0)}}
 #startCinematic.fadeout .versus,#startCinematic.fadeout .names,#startCinematic.fadeout .loading{animation:cinTextOut 5s linear forwards}
 @keyframes cinTextOut{to{opacity:0}}
 @media(prefers-reduced-motion:reduce){#startCinematic .sketch{animation-duration:1.15s}}
@@ -1057,6 +1057,7 @@ function beginStartCinematic(onSwitch=()=>{},onEnd=()=>{}){
  left.innerHTML='';right.innerHTML='';
  const addNames=(host,arr)=>arr.forEach((name,i)=>{const n=document.createElement('div');n.textContent=name;n.style.color=getComputedStyle(document.body).getPropertyValue('--a').trim()||'#65f4ff';host.append(n)});
  addNames(left,names.left);addNames(right,names.right);
+ [...left.children,...right.children].forEach(node=>{node.classList.remove('sketch');node.style.removeProperty('opacity')});
  el.classList.remove('fadeout');el.classList.add('active');el.style.opacity='1';el.style.transition='none';
  // Lock all page controls/touch gestures for the complete cinematic.
  document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';
@@ -1082,7 +1083,7 @@ function beginStartCinematic(onSwitch=()=>{},onEnd=()=>{}){
   if(!switched&&elapsed>=15){switched=true;onSwitch()}
   if(elapsed>=25&&!el.classList.contains('fadeout'))el.classList.add('fadeout');
   if(elapsed<30){startCinematicTimer=requestAnimationFrame(tick);return}
-  el.style.setProperty('--cin-darkness','0');el.classList.remove('active','fadeout');vs.classList.remove('sketch');vs.style.opacity='0';
+  el.style.setProperty('--cin-darkness','0');el.classList.remove('active','fadeout');vs.classList.remove('sketch');vs.style.opacity='0';[...left.children,...right.children].forEach(node=>{node.classList.remove('sketch');node.style.removeProperty('opacity')});
   document.documentElement.style.overflow='';document.body.style.overflow='';
   startCinematicRunning=false;startCinematicTimer=null;onEnd();
  }
