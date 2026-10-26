@@ -450,7 +450,13 @@ body.woman-theme #onlineModeChoices button[aria-pressed="true"]{border-color:#ff
 #sosSpotlight.relic-k #sosSpotlightTitle{z-index:2!important;opacity:0;color:#fff!important;background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;font-weight:1000!important;letter-spacing:.1em;text-shadow:0 0 4px #fff,0 0 18px #fff,0 0 38px #61f7ff,0 0 60px #ff38d2!important;animation:relicKTextReveal 6.4s ease-in-out forwards!important}
 @keyframes relicKBeam{0%{left:-65%;opacity:0;filter:blur(18px) brightness(1)}12%{opacity:1}38%{filter:blur(5px) brightness(3.4)}66%{left:120%;opacity:1}78%{left:145%;opacity:.2}100%{left:150%;opacity:0}}
 @keyframes relicKTextReveal{0%,12%{opacity:0;filter:brightness(.1);transform:scale(.96)}23%{opacity:1;filter:brightness(2.8);transform:scale(1.04)}34%,68%{opacity:1;filter:brightness(1.3);transform:scale(1)}84%{opacity:.18;filter:brightness(.25)}100%{opacity:0;filter:brightness(0);transform:scale(.98)}}
-@keyframes relicKDarken{0%,10%{background:#000;opacity:1}25%{background:#070510;opacity:1}45%{background:#11102a;opacity:1}70%{background:#03030a;opacity:1}100%{background:#000;opacity:1}}
+@keyframes relicKDarken{0%{opacity:0;background:#000}20%{opacity:1;background:#050509}40%,60%{opacity:1;background:#000}80%{opacity:.75;background:#000}100%{opacity:0;background:#000}}
+#sosSpotlight.relic-k #sosSpotlightTitle{transform:none!important;left:0;top:50%;opacity:1!important;animation:none!important;color:#fff!important;text-shadow:0 0 10px #fff,0 0 28px #fff,0 0 48px #8fefff;white-space:nowrap}
+#sosSpotlight.relic-k .relic-letter{display:inline-block;opacity:0;animation:relicLetterSketch .42s ease forwards;animation-delay:var(--delay)}
+#sosSpotlight.relic-k .relic-final-k{font-size:1.55em;font-weight:1000;color:var(--relic-k-color,#ff3e9d);text-shadow:0 0 12px currentColor,0 0 32px currentColor; -webkit-text-stroke:.5px currentColor}
+body.woman-theme #sosSpotlight.relic-k .relic-final-k{--relic-k-color:#ff168f}
+body:not(.woman-theme) #sosSpotlight.relic-k .relic-final-k{--relic-k-color:#00eaff}
+@keyframes relicLetterSketch{0%{opacity:0;filter:blur(8px);clip-path:inset(0 100% 0 0);transform:translateY(8px)}55%{opacity:1;filter:blur(0);clip-path:inset(0 0 0 0);transform:translateY(-2px)}100%{opacity:0;filter:blur(3px);clip-path:inset(0 0 0 100%);transform:translateY(0)}}
 /* Currency stays right-aligned; both action buttons are the same size below the plus button. */
 #lobbyFeatures{padding-top:124px!important}
 #lobbyProgressActions{position:absolute;z-index:7;top:63px;right:14px;display:flex;gap:7px;align-items:center;justify-content:flex-end}
@@ -692,8 +698,11 @@ function showSOSSpotlight(title,darkness,withShade=true,color=''){
  if(isRelicK){
   shade.style.display='block';
   shade.style.animation='relicKDarken 6.4s ease-in-out forwards';
-  heading.style.animation='relicKTextReveal 6.4s ease-in-out forwards';
-  sosSpotlightTimer=setTimeout(()=>{el.classList.remove('active','relic-k');heading.textContent='';heading.style.background='';heading.style.webkitBackgroundClip='';heading.style.backgroundClip='';heading.style.color='#fff';shade.style.display='block';shade.style.animation='';sosSpotlightTimer=null},6600);
+  heading.style.animation='none';
+  const seq='RELIK';heading.innerHTML='';
+  [...seq].forEach((ch,i)=>{const span=document.createElement('span');span.className='relic-letter';span.textContent=ch;span.style.setProperty('--delay',(1.05+i*.62)+'s');heading.append(span)});
+  const finalK=document.createElement('span');finalK.className='relic-letter relic-final-k';finalK.textContent='K';finalK.style.setProperty('--delay','4.0s');heading.append(finalK);
+  sosSpotlightTimer=setTimeout(()=>{el.classList.remove('active','relic-k');heading.textContent='';heading.style.background='';heading.style.webkitBackgroundClip='';heading.style.backgroundClip='';heading.style.color='#fff';shade.style.display='block';shade.style.animation='';sosSpotlightTimer=null},5000);
   return;
  }
  if(withShade){shade.style.animation=el.classList.contains('relic-rainbow')?'sos-shade 5s linear forwards,relicRainbowShade 1.7s linear infinite':'sos-shade 5s linear forwards'}
@@ -1176,6 +1185,34 @@ async function submitOnlineMove(i,p){
   if(!result.data)throw new Error('Server tidak mengembalikan keadaan room.');
   room=result.data;syncFromRoom(room);
   const found=findSOS(i);
+  // Reconcile the three legendary relic effects against the actual move. The RPC places the symbol;
+  // this client reconciliation applies the card rules and persists the resulting shared state.
+  const oldRelic=priorRoom?.relic_state?{...priorRoom.relic_state}:null;
+  let relic=oldRelic, adjustedScores={...(priorRoom?.scores||room.scores||{})};
+  const order=room.players_order||priorRoom?.players_order||players.map(x=>x.user_id);
+  const actorId=user?.id;
+  const team=isTeamRoom(room);
+  const scoreKeyFor=(id)=>team?teamScoreKey(playerTeam(players.find(x=>x.user_id===id))):id;
+  const activeK=relic?.type==='relic-k';
+  if(found.length){
+    let points=found.length;
+    if(relic?.owner===actorId&&relic.type==='multiple'&&found.length>=2)points=found.length*found.length;
+    if(activeK&&relic.owner===actorId){if(found.length>=2)points=found.length*found.length;if(combo>=1)points+=1;}
+    if(relic?.owner===actorId&&relic.type==='combo'&&combo>=1)points+=1;
+    const ownKey=scoreKeyFor(actorId);adjustedScores[ownKey]=(Number(adjustedScores[ownKey])||0)+points;
+    if(activeK&&relic.owner!==actorId){
+      const ownerSide=playerTeam(players.find(x=>x.user_id===relic.owner));
+      if(team){const enemyKey=scoreKeyFor(actorId);if(playerTeam(players.find(x=>x.user_id===actorId))!==ownerSide)adjustedScores[enemyKey]=(Number(adjustedScores[enemyKey])||0)-points;}
+      else order.filter(id=>id!==relic.owner).forEach(id=>{adjustedScores[id]=(Number(adjustedScores[id])||0)-points});
+    }
+    if(relic?.owner===actorId&&relic.type==='multiple'&&found.length<2)relic=null;
+    // Relik K stays active through SOS, combo, and multipel; it burns out on a non-SOS move.
+  } else if(activeK || (relic?.owner===actorId&&['combo','multiple'].includes(relic.type))) relic=null;
+  const nextTurn=Number(room.current_turn)||0;
+  const nextRoomPatch={scores:adjustedScores,relic_state:relic};
+  const patch=await sb.from('sos_rooms').update(nextRoomPatch).eq('id',roomId).eq('status','playing');
+  if(patch.error)throw new Error('Langkah tersimpan, tetapi efek relik gagal disimpan: '+patch.error.message);
+  room={...room,...nextRoomPatch};syncFromRoom(room);
   announceMoveEvent('Kamu',letter,i,found.length,found.length>0&&wasFirst);
   drawLines(found);
   if(room.status==='finished')finishGame();
@@ -1530,9 +1567,9 @@ $('openProfile').onclick=()=>modal('PROFIL PEMAIN',b=>{
 });
 async function cloudFriends(){if(!sb||!user)return {friends:[],incoming:[],outgoing:[]};let r=await sb.rpc('sos_friend_list');if(r.error)throw r.error;return r.data||{friends:[],incoming:[],outgoing:[]}}
 $('openFriends').onclick=()=>modal('PERTEMANAN',b=>{renderFriendsPanel(b)});
-async function renderFriendsPanel(b){b.innerHTML='<p class="muted">Memuat pertemanan…</p>';try{if(!sb||!user)throw new Error('Login Supabase diperlukan.');const data=await cloudFriends();b.innerHTML='';let search=field('Cari pemain berdasarkan ID (contoh #ABC123)','friendSearch','');b.append(search);let find=document.createElement('button');find.textContent='CARI ID';find.onclick=async()=>{let id=$('friendSearch').value.trim().replace(/^#/,'').toUpperCase();if(!/^[A-Z0-9]{6}$/.test(id)){alert('Masukkan ID 6 karakter.');return}find.disabled=true;try{let r=await sb.from('sos_profiles').select('player_id,display_name,level').eq('player_id',id).maybeSingle();if(r.error)throw r.error;if(!r.data){alert('ID pemain tidak ditemukan.');return}if(r.data.player_id===accountState.id){alert('Itu ID akun kamu sendiri.');return}const req=await sb.rpc('sos_friend_request',{p_target_player_id:id});if(req.error)throw req.error;alert(req.data?.message||'Permintaan pertemanan dikirim ke '+(r.data.display_name||'Pemain')+' (#'+id+').');await renderFriendsPanel(b)}catch(e){alert('Gagal mencari/mengirim permintaan: '+e.message+'\nJalankan SQL pembaruan SOS Arena dan pastikan tabel sos_friendships sudah tersedia.')}finally{find.disabled=false}};b.append(find);
+async function renderFriendsPanel(b){b.innerHTML='<p class="muted">Memuat pertemanan…</p>';try{if(!sb||!user)throw new Error('Login Supabase diperlukan.');const data=await cloudFriends();let friendBios={};if(data.friends?.length){const ids=data.friends.map(f=>f.player_id).filter(Boolean);if(ids.length){const bios=await sb.from('sos_profiles').select('player_id,bio').in('player_id',ids);if(!bios.error)(bios.data||[]).forEach(p=>friendBios[p.player_id]=p.bio||'')}}b.innerHTML='';let search=field('Cari pemain berdasarkan ID (contoh #ABC123)','friendSearch','');b.append(search);let find=document.createElement('button');find.textContent='CARI ID';find.onclick=async()=>{let id=$('friendSearch').value.trim().replace(/^#/,'').toUpperCase();if(!/^[A-Z0-9]{6}$/.test(id)){alert('Masukkan ID 6 karakter.');return}find.disabled=true;try{let r=await sb.from('sos_profiles').select('player_id,display_name,level').eq('player_id',id).maybeSingle();if(r.error)throw r.error;if(!r.data){alert('ID pemain tidak ditemukan.');return}if(r.data.player_id===accountState.id){alert('Itu ID akun kamu sendiri.');return}const req=await sb.rpc('sos_friend_request',{p_target_player_id:id});if(req.error)throw req.error;alert(req.data?.message||'Permintaan pertemanan dikirim ke '+(r.data.display_name||'Pemain')+' (#'+id+').');await renderFriendsPanel(b)}catch(e){alert('Gagal mencari/mengirim permintaan: '+e.message+'\nJalankan SQL pembaruan SOS Arena dan pastikan tabel sos_friendships sudah tersedia.')}finally{find.disabled=false}};b.append(find);
 let ih=document.createElement('h3');ih.textContent='Permintaan masuk';b.append(ih);if(!data.incoming?.length){let p=document.createElement('p');p.className='muted';p.textContent='Tidak ada permintaan baru.';b.append(p)}(data.incoming||[]).forEach(f=>{let row=document.createElement('div');row.className='feature-row';let t=document.createElement('span');t.textContent=(f.display_name||'Pemain')+' · #'+f.player_id;row.append(t);['TERIMA','TOLAK'].forEach(a=>{let bt=document.createElement('button');bt.textContent=a;bt.onclick=async()=>{bt.disabled=true;try{const rr=await sb.rpc('sos_friend_respond',{p_requester_player_id:f.player_id,p_accept:a==='TERIMA'});if(rr.error)throw rr.error;alert(a==='TERIMA'?'Permintaan pertemanan diterima.':'Permintaan pertemanan ditolak.');await renderFriendsPanel(b)}catch(e){console.error('Gagal merespons pertemanan:',e);alert('Permintaan belum berhasil diproses. Jalankan SQL perbaikan pertemanan di Supabase. Detail: '+(e?.message||String(e)))}finally{bt.disabled=false}};row.append(bt)});b.append(row)});
-let fh=document.createElement('h3');fh.textContent='Teman yang sudah disetujui';b.append(fh);if(!data.friends?.length){let p=document.createElement('p');p.className='muted';p.textContent='Belum ada teman yang disetujui.';b.append(p)}(data.friends||[]).forEach(f=>{let row=document.createElement('div');row.className='feature-row';let t=document.createElement('span');t.textContent=(f.display_name||'Pemain')+' · #'+f.player_id+' · Level '+(f.level||1);row.append(t);let rm=document.createElement('button');rm.className='secondary';rm.textContent='Hapus';rm.onclick=async()=>{if(confirm('Hapus teman ini?')){let r=await sb.rpc('sos_friend_remove',{p_target_player_id:f.player_id});if(r.error)alert(r.error.message);else await renderFriendsPanel(b)}};row.append(rm);b.append(row)});
+let fh=document.createElement('h3');fh.textContent='Teman yang sudah disetujui';b.append(fh);if(!data.friends?.length){let p=document.createElement('p');p.className='muted';p.textContent='Belum ada teman yang disetujui.';b.append(p)}(data.friends||[]).forEach(f=>{let row=document.createElement('div');row.className='feature-row';let t=document.createElement('span');t.textContent=(f.display_name||'Pemain')+' · #'+f.player_id+' · Level '+(f.level||1);row.append(t);const bio=document.createElement('p');bio.className='muted friend-bio';bio.textContent='Tentang saya: '+(friendBios[f.player_id]?.trim()||'Belum menambahkan bio.');row.append(bio);let rm=document.createElement('button');rm.className='secondary';rm.textContent='Hapus';rm.onclick=async()=>{if(confirm('Hapus teman ini?')){let r=await sb.rpc('sos_friend_remove',{p_target_player_id:f.player_id});if(r.error)alert(r.error.message);else await renderFriendsPanel(b)}};row.append(rm);b.append(row)});
 }catch(e){b.innerHTML='';let p=document.createElement('p');p.className='muted';p.textContent='Pertemanan lintas akun belum siap: '+e.message+' Jalankan SQL pembaruan terbaru di Supabase.';b.append(p)}}
 const cardNames=[
 ['Pemotong Waktu','Kurangi 10 detik dari giliran lawan berikutnya.'],['Perisai Waktu','Tambahkan 10 detik pada giliranmu saat ini.'],['Pengganda SOS','Poin SOS berikutnya menjadi 2×; maksimal 3 SOS.'],['Pencuri Skor','Ambil 1 poin dari lawan dengan skor tertinggi.'],['Bonus SOS','SOS berikutnya memberi tambahan 1 poin.'],['Pembeku Giliran','Kurangi waktu lawan berikutnya sebanyak 5 detik.'],['Pengaman Kombo','Lindungi kombo dari satu kegagalan SOS.'],['Pengacak Huruf','Buka pilihan ulang huruf S atau O sebelum langkah berikutnya.'],['Perisai Skor','Batalkan satu efek pencurian skor.'],['Bonus Koin','Bonus koin setelah pertandingan online selesai.'],['Poin Balik','Saat tertinggal skor, SOS berikutnya mendapat bonus 1 poin.'],['Kartu Taktik','Langkah berikutnya mendapat bonus 1 poin jika menghasilkan SOS.'],['Perisai Taktis','Abaikan satu efek kartu lawan yang diarahkan kepadamu.'],['SOS Final','SOS berikutnya memberi bonus 2 poin, sekali pakai.'],['Pengunci Kotak','Kunci satu kotak kosong agar tidak dapat dipilih lawan pada giliran berikutnya.'],
