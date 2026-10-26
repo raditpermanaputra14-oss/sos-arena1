@@ -698,7 +698,7 @@ function showSOSSpotlight(title,darkness,withShade=true,color=''){
  if(!el||!heading||!shade)return;
  if(sosSpotlightTimer)clearTimeout(sosSpotlightTimer);
  const isRelicK=/relik\s*k|phoenix/i.test(String(title||''));
- el.classList.remove('relic-k','relic-rainbow');
+ el.classList.remove('relic-k','relic-k-live','relic-rainbow');
  el.querySelector('.sos-phoenix-art')?.remove();
  if(isRelicK)el.classList.add('relic-k');
  else if(/relik|rainbow/i.test(String(title||'')))el.classList.add('relic-rainbow');
@@ -711,13 +711,23 @@ function showSOSSpotlight(title,darkness,withShade=true,color=''){
  shade.style.display=withShade?'block':'none';
  void el.offsetWidth;el.classList.add('active');shade.style.animation='none';heading.style.animation='none';void shade.offsetWidth;
  if(isRelicK){
-  shade.style.display='block';
-  shade.style.animation='relicKDarken 5s ease-in-out forwards';
-  heading.style.animation='none';
-  const seq='RELIK';heading.innerHTML='';
-  [...seq].forEach((ch,i)=>{const span=document.createElement('span');span.className='relic-letter';span.textContent=ch;span.style.setProperty('--delay',(1.05+i*.62)+'s');heading.append(span)});
-  const finalK=document.createElement('span');finalK.className='relic-letter relic-final-k';finalK.textContent='K';finalK.style.setProperty('--delay','4.18s');heading.append(finalK);
-  sosSpotlightTimer=setTimeout(()=>{el.classList.remove('active','relic-k');heading.textContent='';heading.style.background='';heading.style.webkitBackgroundClip='';heading.style.backgroundClip='';heading.style.color='#fff';shade.style.display='block';shade.style.animation='';sosSpotlightTimer=null},5000);
+  // Relik K uses isolated Web Animations so legacy CSS rules cannot hide its title or cancel fades.
+  el.style.cssText += ';position:fixed!important;inset:0!important;z-index:10000!important;display:block!important;pointer-events:none!important;background:transparent!important;filter:none!important;isolation:isolate!important;overflow:hidden!important;';
+  el.classList.add('active','relic-k-live');
+  shade.style.cssText='position:absolute!important;inset:0!important;z-index:1!important;display:block!important;background:#000!important;opacity:0;filter:none!important;';
+  heading.innerHTML='';
+  heading.style.cssText='position:absolute!important;left:0!important;top:50%!important;width:100%!important;z-index:5!important;display:flex!important;justify-content:center!important;align-items:center!important;gap:.025em!important;white-space:nowrap!important;transform:translateY(-50%)!important;opacity:1!important;color:#fff!important;background:none!important;-webkit-background-clip:border-box!important;background-clip:border-box!important;font-size:clamp(38px,10vw,78px)!important;line-height:1!important;font-weight:1000!important;letter-spacing:.04em!important;text-align:center!important;text-shadow:0 0 6px #fff,0 0 18px #fff,0 0 40px #67f6ff,0 0 65px #ff38d2!important;padding:0 8px!important;';
+  // Remove any pseudo-element beams left by old styles; use a real beam element instead.
+  let beam=el.querySelector('.relic-k-beam-real');if(!beam){beam=document.createElement('div');beam.className='relic-k-beam-real';el.appendChild(beam)}
+  beam.style.cssText='position:absolute!important;z-index:3!important;top:-25%!important;bottom:-25%!important;left:-65%;width:42%!important;opacity:0;pointer-events:none!important;background:linear-gradient(90deg,transparent 0%,#ff168f66 25%,#bfffff 43%,#fff 50%,#00eaff 61%,#ff168f77 78%,transparent 100%)!important;filter:blur(9px) brightness(4)!important;mix-blend-mode:screen!important;transform:skewX(-12deg)!important;';
+  const style=document.getElementById('relic-k-hard-fix')||document.createElement('style');style.id='relic-k-hard-fix';style.textContent='#sosSpotlight.relic-k-live:before,#sosSpotlight.relic-k-live:after{content:none!important;display:none!important}#sosSpotlight.relic-k-live .relic-k-beam-real{display:block!important}#sosSpotlight.relic-k-live .rk-letter-live,#sosSpotlight.relic-k-live .rk-final-live{animation:none!important}';if(!style.parentNode)document.head.appendChild(style);
+  const seq='RELIK';
+  [...seq].forEach((ch,i)=>{const span=document.createElement('span');span.className='rk-letter-live';span.textContent=ch;span.style.cssText='display:inline-block!important;opacity:0;color:#fff!important;';heading.appendChild(span);span.animate([{opacity:0,filter:'blur(8px)',clipPath:'inset(0 100% 0 0)',transform:'translateY(8px)'},{opacity:1,filter:'brightness(2.4) blur(0)',clipPath:'inset(0 0 0 0)',transform:'translateY(-2px)',offset:.48},{opacity:1,filter:'brightness(1.5)',clipPath:'inset(0 0 0 0)',transform:'translateY(0)',offset:.7},{opacity:0,filter:'blur(4px)',clipPath:'inset(0 0 0 100%)',transform:'translateY(0)'}],{duration:780,delay:550+i*590,fill:'both',easing:'ease-in-out'});});
+  const finalK=document.createElement('span');finalK.className='rk-final-live';finalK.textContent='K';const kColor=document.body.classList.contains('woman-theme')?'#ff168f':'#00eaff';finalK.style.cssText=`display:inline-block!important;opacity:0;font-size:1.65em!important;font-weight:1000!important;color:${kColor}!important;-webkit-text-stroke:.5px ${kColor}!important;text-shadow:0 0 12px ${kColor},0 0 30px ${kColor},0 0 55px ${kColor}!important;`;heading.appendChild(finalK);finalK.animate([{opacity:0,filter:'blur(12px)',clipPath:'inset(0 100% 0 0)',transform:'scale(.75)'},{opacity:1,filter:'brightness(3) blur(0)',clipPath:'inset(0 0 0 0)',transform:'scale(1.16)',offset:.55},{opacity:1,filter:'brightness(1.6)',transform:'scale(1)',offset:.78},{opacity:0,filter:'blur(5px)',clipPath:'inset(0 0 0 100%)',transform:'scale(.95)'}],{duration:1150,delay:3500,fill:'both',easing:'ease-in-out'});
+  // Exact 5-second screen fade: darkens over 1–2s, darkest at 3s, fades out over 4–5s.
+  shade.animate([{opacity:0,offset:0},{opacity:.45,offset:.2},{opacity:.97,offset:.4},{opacity:1,offset:.6},{opacity:.65,offset:.8},{opacity:0,offset:1}],{duration:5000,fill:'forwards',easing:'linear'});
+  beam.animate([{left:'-65%',opacity:0},{left:'-35%',opacity:0,offset:.18},{left:'-10%',opacity:1,offset:.32},{left:'45%',opacity:1,offset:.58},{left:'120%',opacity:.9,offset:.78},{left:'150%',opacity:0}],{duration:5000,fill:'forwards',easing:'ease-in-out'});
+  sosSpotlightTimer=setTimeout(()=>{el.classList.remove('active','relic-k','relic-k-live');heading.innerHTML='';heading.removeAttribute('style');shade.removeAttribute('style');beam.remove();el.removeAttribute('style');sosSpotlightTimer=null},5000);
   return;
  }
  if(withShade){shade.style.animation=el.classList.contains('relic-rainbow')?'sos-shade 5s linear forwards,relicRainbowShade 1.7s linear infinite':'sos-shade 5s linear forwards'}
