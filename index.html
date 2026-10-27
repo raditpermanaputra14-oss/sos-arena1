@@ -4,7 +4,7 @@
 <head>
 <meta content="8NJ2wNfPymj4VzEJ0mSjJJPkVeDPNiQaJ-dnSyPCiWQ" name="google-site-verification"/>
 <meta charset="utf-8"/><meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
-<title>SOS Arena v17 — Kartu Roda Terbaru</title>
+<title>SOS Arena v18 — Kartu Roda Terbaru</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#090d1c;--panel:rgba(20,27,55,.86);--line:#ffffff20;--text:#f7f8ff;--muted:#aeb7d7;--a:#65f4ff;--b:#b57bff;--gold:#ffdc76;--danger:#ff6b9c}
@@ -1619,7 +1619,14 @@ function loadAccountState(){
  Object.assign(accountState,d);
  if(!accountState.level)accountState.level=1;
  const isDeveloper=!!(user&&(user.email||'').trim().toLowerCase()===DEV_EMAIL);
- ['openDeveloper','lobbyOpenDeveloper'].forEach(id=>{const button=$(id);if(button)button.classList.toggle('hidden',!isDeveloper)});
+ // Pastikan tombol wewenang developer hanya tampil untuk akun developer.
+ // Pakai inline !important agar aturan layout tombol tidak dapat memunculkannya pada akun biasa.
+ ['openDeveloper','lobbyOpenDeveloper'].forEach(id=>{
+  const button=$(id);if(!button)return;
+  button.classList.toggle('hidden',!isDeveloper);
+  if(isDeveloper){button.style.removeProperty('display');button.removeAttribute('aria-hidden');button.disabled=false;}
+  else{button.style.setProperty('display','none','important');button.setAttribute('aria-hidden','true');button.disabled=true;}
+ });
  saveAccountState();renderAccountState();
  if(user&&sb)refreshAccountProfile();
 }
@@ -2006,3 +2013,4 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
 
 <!-- SOS Arena v17: wheel rewards are restricted by the accompanying Supabase migration to current cards 1-30. -->
 </body></html>
+<!-- v18: tombol Wewenang Developer disembunyikan paksa untuk akun non-developer; akun developer tetap dapat melihatnya. -->
