@@ -603,6 +603,36 @@ body.woman-theme .lobby-quick-actions>.row>button:focus-visible{outline-color:#f
  #lobbyQuoteTop .sketch-char,#lobbyQuoteBottom .sketch-char{color:#eafaff;-webkit-text-stroke:0;opacity:1}
 }
 </style>
+
+<style id="sos-arena-quote-position-fix">
+/* Kutipan diposisikan pada grid vertikal 1/5–5/5 tanpa menggeser judul sambutan. */
+#lobbyWelcome{position:relative}
+#lobbyWelcome #lobbyQuoteTop,
+#lobbyWelcome #lobbyQuoteBottom{
+  position:absolute!important; left:50%!important; z-index:2;
+  width:min(88vw,650px)!important; max-width:88vw!important;
+  margin:0!important; padding:0 8px!important; box-sizing:border-box!important;
+  transform:translate(-50%,-50%)!important;
+  text-align:center!important; overflow-wrap:anywhere!important; text-wrap:balance;
+  color:var(--a,#65f4ff)!important;
+  text-shadow:0 0 8px color-mix(in srgb,var(--a,#65f4ff) 38%,transparent),0 0 18px color-mix(in srgb,var(--a,#65f4ff) 20%,transparent)!important;
+}
+/* Titik tengah kutipan: 2/5 untuk bagian atas dan 4/5 untuk bagian bawah. */
+#lobbyWelcome #lobbyQuoteTop{top:40%!important; bottom:auto!important}
+#lobbyWelcome #lobbyQuoteBottom{top:80%!important; bottom:auto!important}
+#lobbyWelcome #lobbyQuoteTop .sketch-char.drawn,
+#lobbyWelcome #lobbyQuoteBottom .sketch-char.drawn{
+  color:var(--a,#65f4ff)!important; text-shadow:0 0 8px color-mix(in srgb,var(--a,#65f4ff) 45%,transparent)!important;
+}
+body.woman-theme #lobbyWelcome #lobbyQuoteTop,
+body.woman-theme #lobbyWelcome #lobbyQuoteBottom{color:var(--a,#ff8dc7)!important}
+@media(max-height:650px){
+ #lobbyWelcome #lobbyQuoteTop{top:40%!important}
+ #lobbyWelcome #lobbyQuoteBottom{top:80%!important}
+ #lobbyWelcome #lobbyQuoteTop,#lobbyWelcome #lobbyQuoteBottom{font-size:clamp(10px,2.5vw,14px)!important}
+}
+</style>
+
 </head>
 <body>
 <!-- Background music: a single manager switches tracks so they never overlap. -->
