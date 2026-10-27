@@ -588,11 +588,11 @@ body.woman-theme .lobby-quick-actions>.row>button:focus-visible{outline-color:#f
 #lobbyQuoteBottom{margin-top:clamp(8px,2vh,18px)}
 #lobbyQuoteTop .sketch-char,#lobbyQuoteBottom .sketch-char{
  display:inline-block; white-space:pre; color:transparent;
- -webkit-text-stroke:.45px #9cefff; text-shadow:0 0 7px #65f4ff77;
+ -webkit-text-stroke:0 transparent; text-shadow:none; opacity:0;
 }
 #lobbyQuoteTop .sketch-char.drawn,#lobbyQuoteBottom .sketch-char.drawn{
- color:#eafaff; -webkit-text-stroke:.15px #65f4ff;
- text-shadow:0 0 9px #65f4ff88;
+ color:#eafaff; -webkit-text-stroke:0 transparent;
+ text-shadow:0 0 8px #65f4ff55; opacity:1;
 }
 @media(max-height:650px){
  #lobbyQuoteTop,#lobbyQuoteBottom{font-size:clamp(10px,2.5vw,14px);min-height:2.5em;margin:5px auto}
@@ -600,7 +600,7 @@ body.woman-theme .lobby-quick-actions>.row>button:focus-visible{outline-color:#f
  #lobbyWelcome h1{margin:10px 0}
 }
 @media(prefers-reduced-motion:reduce){
- #lobbyQuoteTop .sketch-char,#lobbyQuoteBottom .sketch-char{color:#eafaff;-webkit-text-stroke:0}
+ #lobbyQuoteTop .sketch-char,#lobbyQuoteBottom .sketch-char{color:#eafaff;-webkit-text-stroke:0;opacity:1}
 }
 </style>
 </head>
@@ -2077,14 +2077,14 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
    for(const ch of chars){
      if(token!==runToken)return;
      ch.classList.add('drawn');
-     await sleep(34);
+     await sleep(55);
    }
-   await sleep(1700);
+   await sleep(4000);
    // Huruf benar-benar dihapus satu per satu dari awal, bukan sekadar diredupkan.
    for(const ch of chars){
      if(token!==runToken)return;
      ch.remove();
-     await sleep(24);
+     await sleep(40);
    }
    el.replaceChildren();
  }
@@ -2097,6 +2097,7 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
      await animateQuote(el,quotes[index],token);
      index=(index+1)%quotes.length;
      await sleep(220);
+     if(!active) break;
    }
  }
  // Kutipan hanya berjalan pada layar sambutan awal, sebelum lobi digeser.
