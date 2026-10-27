@@ -578,7 +578,7 @@ body.woman-theme .lobby-quick-actions>.row>button:focus-visible{outline-color:#f
 <style>
 /* Kutipan bergantian pada layar sambutan SOS Arena */
 #lobbyQuoteTop,#lobbyQuoteBottom{
- width:min( min(88vw,650px),100%); min-height:3.2em; display:flex;align-items:center;justify-content:center;
+ width:min(88vw,650px); min-height:0; display:block; box-sizing:border-box;
  margin:clamp(8px,2.2vh,22px) auto; padding:0 8px; text-align:center;
  color:#dcecff; font-size:clamp(12px,3.25vw,17px); font-weight:750; line-height:1.55;
  letter-spacing:.15px; text-wrap:balance; overflow-wrap:anywhere;
@@ -2065,7 +2065,7 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
    for(const ch of text){
      const span=document.createElement('span');
      span.className='sketch-char';
-     span.textContent=ch===' '?'\\u00a0':ch;
+     span.textContent=ch;
      frag.appendChild(span);
    }
    el.appendChild(frag);
@@ -2080,16 +2080,16 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
      await sleep(34);
    }
    await sleep(1700);
-   // Sketsa terhapus kembali dari huruf pertama sampai huruf terakhir.
+   // Huruf benar-benar dihapus satu per satu dari awal, bukan sekadar diredupkan.
    for(const ch of chars){
      if(token!==runToken)return;
-     ch.classList.remove('drawn');
+     ch.remove();
      await sleep(24);
    }
    el.replaceChildren();
  }
  async function cycle(){
-   while(true){
+   while(active){
      const token=++runToken;
      const el=(index%2===0)?top:bottom;
      const other=(el===top)?bottom:top;
