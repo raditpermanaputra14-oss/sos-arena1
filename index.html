@@ -562,6 +562,17 @@ body:not(.woman-theme) #sosSpotlight.relic-k .relic-final-k{--relic-k-color:#00e
 @keyframes cinTextOut{to{opacity:0}}
 @media(prefers-reduced-motion:reduce){#startCinematic .sketch{animation-duration:1.15s}}
 </style>
+
+<style id="sos-arena-v16-lobby-button-layout">
+/* Samakan ukuran dan rapikan tombol fitur lobi, termasuk tombol developer. */
+.lobby-quick-actions{box-sizing:border-box;min-width:0}
+.lobby-quick-actions>.row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;align-items:stretch!important;justify-content:stretch!important;gap:10px!important;width:100%;min-width:0}
+.lobby-quick-actions>.row>button{box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;min-height:56px!important;height:100%!important;margin:0!important;padding:10px 12px!important;border-radius:14px!important;text-align:center!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;line-height:1.3!important;font-size:clamp(12px,2.5vw,14px)!important;font-weight:900!important;letter-spacing:.1px!important}
+.lobby-quick-actions>.row>button:focus-visible{outline:2px solid #65f4ff;outline-offset:2px}
+body.woman-theme .lobby-quick-actions>.row>button:focus-visible{outline-color:#ff78bd}
+@media(min-width:700px){.lobby-quick-actions>.row{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}.lobby-quick-actions>.row>button{min-height:60px!important;padding:12px 14px!important}}
+@media(max-width:360px){.lobby-quick-actions{padding:10px!important}.lobby-quick-actions>.row{gap:8px!important}.lobby-quick-actions>.row>button{min-height:52px!important;padding:8px 6px!important;font-size:11px!important;border-radius:11px!important}}
+</style>
 </head>
 <body>
 <!-- Background music: a single manager switches tracks so they never overlap. -->
@@ -964,6 +975,20 @@ Anda bisa bermain sebagai tim S atau O. Kalahkan musuhmu, buat SOS dan buat timm
 
 Salam hangat
 AEC`
+});
+SYSTEM_INBOX_MESSAGES.push({
+ id:'system-update-2026-10-27-wheel-tasks-levels-aec',
+ createdAt:'2026-10-27T08:19:00+07:00',
+ sender:'SYSTEM',
+ title:'PEMBARUAN TERBARU SOS ARENA',
+ body:`Halo, para pemain SOS Arena! 👋
+
+🎮 Pembaruan terbaru hadir dengan roda keberuntungan, tugas harian dan mingguan, hadiah level, voucher, serta fitur baru lainnya. Nikmati juga berbagai perbaikan tampilan dan fitur game!
+
+Terima kasih telah bermain dan mendukung SOS Arena. ❤️
+
+Salam hangat,
+AEC.`
 });
 SYSTEM_INBOX_MESSAGES.push({
  id:'system-tugas-hadiah-level-2026-10-26',
@@ -1838,8 +1863,9 @@ $('openDeveloper').onclick=()=>modal('WEWENANG DEVELOPER',b=>{
  b.append(field('Jumlah EXP (0 jika tidak dikirim)','devExp','0','number'));
  b.append(field('Jumlah voucher biasa (0 jika tidak dikirim)','devRegularVouchers','0','number'));
  b.append(field('Jumlah golden voucher (0 jika tidak dikirim)','devGoldenVouchers','0','number'));
- const redeemCodePanel=document.createElement('div');redeemCodePanel.className='notice';redeemCodePanel.textContent='Kode redeem aktif akan dimuat dari server.';b.append(redeemCodePanel);
- const refreshCodeBtn=document.createElement('button');refreshCodeBtn.type='button';refreshCodeBtn.textContent='🔄 REFRESH / GANTI KODE REDEEM';refreshCodeBtn.onclick=async()=>{if(!confirm('Ganti kode redeem aktif sekarang? Kode lama akan tidak berlaku dan klaim kode baru dimulai kembali.'))return;refreshCodeBtn.disabled=true;refreshCodeBtn.textContent='MENGGANTI KODE…';try{const r=await sb.rpc('sos_developer_refresh_redeem_code');if(r.error)throw r.error;const d=Array.isArray(r.data)?r.data[0]:r.data;redeemCodePanel.textContent='KODE REDEEM AKTIF: '+d.code+' · aktif sampai '+(d.expires_at?new Date(d.expires_at).toLocaleString('id-ID'):'akhir periode 3 jam server')+'. Kode juga otomatis berganti setiap 3 jam waktu server.';}catch(e){redeemCodePanel.textContent='Gagal mengganti kode. Jalankan SQL pembaruan developer terbaru di Supabase. '+(e?.message||String(e));}finally{refreshCodeBtn.disabled=false;refreshCodeBtn.textContent='🔄 REFRESH / GANTI KODE REDEEM'}};b.append(refreshCodeBtn);
+ const redeemCodePanel=document.createElement('div');redeemCodePanel.className='notice';redeemCodePanel.textContent='Memuat kode redeem aktif dari server…';b.append(redeemCodePanel);
+ const showCurrentRedeemCode=async()=>{try{if(!sb||!user)throw new Error('Login developer diperlukan.');const r=await sb.rpc('sos_developer_current_redeem_code');if(r.error)throw r.error;const d=Array.isArray(r.data)?r.data[0]:r.data;if(!d?.code)throw new Error('Server belum mengembalikan kode aktif.');redeemCodePanel.textContent='KODE REDEEM AKTIF: '+d.code+' · aktif sampai '+(d.expires_at?new Date(d.expires_at).toLocaleString('id-ID'):'akhir periode 3 jam server')+'. Kode ini tampil otomatis dan berganti setiap 3 jam berdasarkan waktu server.';}catch(e){redeemCodePanel.textContent='Kode aktif belum bisa dimuat: '+(e?.message||String(e))+' — pastikan SQL kode redeem SOS Arena sudah dijalankan.'}};
+ const refreshCodeBtn=document.createElement('button');refreshCodeBtn.type='button';refreshCodeBtn.textContent='🔄 REFRESH / GANTI KODE REDEEM';refreshCodeBtn.onclick=async()=>{if(!confirm('Ganti kode redeem aktif sekarang? Kode lama akan tidak berlaku dan klaim kode baru dimulai kembali.'))return;refreshCodeBtn.disabled=true;refreshCodeBtn.textContent='MENGGANTI KODE…';try{const r=await sb.rpc('sos_developer_refresh_redeem_code');if(r.error)throw r.error;await showCurrentRedeemCode();}catch(e){redeemCodePanel.textContent='Gagal mengganti kode. Jalankan SQL pembaruan developer terbaru di Supabase. '+(e?.message||String(e));}finally{refreshCodeBtn.disabled=false;refreshCodeBtn.textContent='🔄 REFRESH / GANTI KODE REDEEM'}};b.append(refreshCodeBtn);showCurrentRedeemCode();
  const gift=document.createElement('button');gift.textContent='KIRIM GIFT';gift.onclick=async()=>{
   const recipient=$('devRecipient').value.trim().replace(/^#/,'').toUpperCase();
   const c=Number($('devCoins').value),d=Number($('devDiamonds').value),x=Number($('devExp').value),rv=Number($('devRegularVouchers').value),gv=Number($('devGoldenVouchers').value);
