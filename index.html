@@ -1093,7 +1093,7 @@ function beginStartCinematic(onSwitch=()=>{},onEnd=()=>{}){
 function startGame(initialBoard,initialScores,initialTurn=0){
  if(startCinematicRunning)return;
  if(typeof setBgm==='function')setBgm('game');
- beginStartCinematic(()=>{startGameImmediate(initialBoard,initialScores,initialTurn)},()=>{announce('GAME DIMULAI',turnName()+' memulai permainan!');if(typeof welcomeVoice==='function')welcomeVoice()});
+ beginStartCinematic(()=>{startGameImmediate(initialBoard,initialScores,initialTurn)},async()=>{if(typeof welcomeVoice==='function')await welcomeVoice();announce('GAME DIMULAI',turnName()+' memulai permainan!')});
 }
 function startGameImmediate(initialBoard,initialScores,initialTurn=0){
  clearResultTimers();closeGameResult();firstSOSAnnounced=false;gameFinished=false;moveLock=false;skipLock=false;
@@ -1221,14 +1221,16 @@ function setupRealtime(){
  });
  realtime.push(rc);
 }
-function welcomeVoice(){
- announce('SELAMAT DATANG','Selamat datang di S.O.S game',false);
- say('Selamat datang di S.O.S game');
+async function welcomeVoice(){
+  announce('SELAMAT DATANG','Selamat datang di S.O.S game',false);
+  // Wait for any queued voice, then finish the welcome voice before GAME DIMULAI is announced.
+  announcementQueue=announcementQueue.then(()=>speakQueued('Selamat datang di S.O.S game')).catch(e=>console.warn('Welcome voice failed',e));
+  await announcementQueue;
 }
 function startRemoteRoomCinematic(){
  if(startCinematicRunning)return;
  if(typeof setBgm==='function')setBgm('game');
- beginStartCinematic(()=>{showScreen('game');syncFromRoom(room)},()=>{welcomeVoice();announce('GAME DIMULAI','Pertandingan dimulai!')});
+ beginStartCinematic(()=>{showScreen('game');syncFromRoom(room)},async()=>{await welcomeVoice();announce('GAME DIMULAI','Pertandingan dimulai!')});
 }
 function updateExpiry(){if(!room)return;let left=Math.max(0,new Date(room.expires_at).getTime()-Date.now()),m=Math.floor(left/60000),s=Math.floor(left%60000/1000);$('roomExpiry').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');if(left===0&&room.status==='lobby')$('roomExpiry').textContent='EXPIRED'}
 $('roomStart').onclick=async()=>{
@@ -1246,7 +1248,7 @@ $('roomStart').onclick=async()=>{
   const r=await sb.from('sos_rooms').update(nextRoom).eq('id',roomId).eq('host_id',user.id).select('*').maybeSingle();
   if(r.error){alert('Gagal memulai game: '+r.error.message);return}
   if(!r.data){alert('Database menolak perubahan room. Periksa UPDATE RLS tabel sos_rooms.');return}
-  room=r.data;syncFromRoom(room);if(typeof setBgm==='function')setBgm('game');beginStartCinematic(()=>{showScreen('game');syncFromRoom(room)},async()=>{if(host&&roomId&&room?.status==='playing'){try{const started=new Date().toISOString();const upd=await sb.from('sos_rooms').update({turn_started_at:started}).eq('id',roomId).eq('status','playing').select('*').maybeSingle();if(!upd.error&&upd.data){room=upd.data;syncFromRoom(room)}}catch(e){console.warn('Gagal memulai timer giliran setelah efek:',e)}}welcomeVoice();announce('GAME DIMULAI','Pertandingan dimulai!')});
+  room=r.data;syncFromRoom(room);if(typeof setBgm==='function')setBgm('game');beginStartCinematic(()=>{showScreen('game');syncFromRoom(room)},async()=>{if(host&&roomId&&room?.status==='playing'){try{const started=new Date().toISOString();const upd=await sb.from('sos_rooms').update({turn_started_at:started}).eq('id',roomId).eq('status','playing').select('*').maybeSingle();if(!upd.error&&upd.data){room=upd.data;syncFromRoom(room)}}catch(e){console.warn('Gagal memulai timer giliran setelah efek:',e)}}await welcomeVoice();announce('GAME DIMULAI','Pertandingan dimulai!')});
  }catch(e){alert('Gagal memulai game: '+(e?.message||String(e)))}
  finally{if(room?.status!=='playing'){btn.disabled=false;btn.textContent='MULAI GAME'}else{btn.disabled=true;btn.textContent='GAME DIMULAI'}}
 };
@@ -1693,7 +1695,29 @@ async function openLevelRewards(){
 function renderMissionList(host,state,scope){
  host.innerHTML='';const defs=scope==='daily'?DAILY_MISSION_DEFS:WEEKLY_MISSION_DEFS;const progress=state[scope==='daily'?'daily_progress':'weekly_progress']||{};const claimed=Array.isArray(state[scope==='daily'?'daily_claimed':'weekly_claimed'])?state[scope==='daily'?'daily_claimed':'weekly_claimed']:[];
  const reset=document.createElement('p');reset.className='muted';reset.textContent=scope==='daily'?'Reset harian setiap pukul 00.00 WIB berdasarkan waktu server.':'Reset mingguan setiap Senin pukul 00.00 WIB berdasarkan waktu server.';host.append(reset);
- defs.forEach(m=>{const value=Math.max(0,Number(progress[m.progress]||0));const complete=value>=m.target,done=claimed.includes(m.key);const row=document.createElement('div');row.className='mission-row';const info=document.createElement('div');const h=document.createElement('h4');h.textContent=m.title;const p=document.createElement('p');p.textContent=m.desc+' Hadiah: '+missionRewardText(m);const track=document.createElement('div');track.className='mission-progress';const fill=document.createElement('span');fill.style.width=Math.min(100,value/m.target*100)+'%';track.append(fill);const count=document.createElement('p');count.style.marginTop='5px';count.textContent=Math.min(value,m.target)+' / '+m.target;info.append(h,p,track,count);const btn=document.createElement('button');btn.type='button';btn.textContent=done?'DIAMBIL':complete?'KLAIM':'BELUM SELESAI';btn.disabled=done||!complete;btn.onclick=async()=>{btn.disabled=true;try{const r=await sb.rpc('sos_arena_claim_mission',{p_scope:scope,p_key:m.key});if(r.error)throw r.error;await refreshAccountProfile();const latest=await getMissionState();renderMissionList(host,latest,scope)}catch(e){alert('Hadiah tugas gagal diklaim: '+(e?.message||String(e)));btn.disabled=false}};row.append(info,btn);if(m.voucherType){const vb=document.createElement('button');vb.type='button';vb.textContent=m.voucherType==='regular'?'KLAIM 🎟️ VOUCHER':'KLAIM 🎫 GOLDEN';vb.style.marginTop='7px';vb.disabled=!complete;vb.onclick=async()=>{vb.disabled=true;try{const r=await sb.rpc('sos_arena_claim_voucher_mission',{p_scope:scope,p_key:m.key});if(r.error)throw r.error;vb.textContent='VOUCHER DIAMBIL';await refreshAccountProfile();}catch(e){alert('Voucher gagal diklaim: '+(e?.message||String(e)));vb.disabled=false}};row.append(vb);try{sb.rpc('sos_arena_voucher_mission_status',{p_scope:scope,p_key:m.key}).then(q=>{if(!q.error&&q.data?.claimed){vb.disabled=true;vb.textContent='VOUCHER DIAMBIL'}})}catch(_){}}host.append(row)})
+ defs.forEach(m=>{
+  const value=Math.max(0,Number(progress[m.progress]||0)),complete=value>=m.target;let done=claimed.includes(m.key),voucherClaimed=!m.voucherType;
+  const row=document.createElement('div');row.className='mission-row';const info=document.createElement('div');const h=document.createElement('h4');h.textContent=m.title;const p=document.createElement('p');p.textContent=m.desc+' Hadiah: '+missionRewardText(m);const track=document.createElement('div');track.className='mission-progress';const fill=document.createElement('span');fill.style.width=Math.min(100,value/m.target*100)+'%';track.append(fill);const count=document.createElement('p');count.style.marginTop='5px';count.textContent=Math.min(value,m.target)+' / '+m.target;info.append(h,p,track,count);
+  const btn=document.createElement('button');btn.type='button';btn.textContent=done?'DIAMBIL':complete?'KLAIM':'BELUM SELESAI';btn.disabled=done||!complete;
+  const updateButton=()=>{if(done&&voucherClaimed){btn.textContent='DIAMBIL';btn.disabled=true}else if(done&&!voucherClaimed){btn.textContent='KLAIM VOUCHER';btn.disabled=false}else{btn.textContent=complete?'KLAIM':'BELUM SELESAI';btn.disabled=!complete}};
+  btn.onclick=async()=>{
+   btn.disabled=true;
+   try{
+    // Check the voucher claim first. This makes retries safe if a previous version claimed only one of the rewards.
+    if(m.voucherType){
+     const status=await sb.rpc('sos_arena_voucher_mission_status',{p_scope:scope,p_key:m.key});if(status.error)throw status.error;
+     voucherClaimed=!!status.data?.claimed;
+     if(!voucherClaimed){const vr=await sb.rpc('sos_arena_claim_voucher_mission',{p_scope:scope,p_key:m.key});if(vr.error)throw vr.error;voucherClaimed=true;}
+    }
+    if(!done){const r=await sb.rpc('sos_arena_claim_mission',{p_scope:scope,p_key:m.key});if(r.error)throw r.error;done=true;}
+    await refreshAccountProfile();const latest=await getMissionState();renderMissionList(host,latest,scope);
+   }catch(e){alert('Hadiah tugas gagal diklaim: '+(e?.message||String(e)));updateButton()}
+  };
+  row.append(info,btn);host.append(row);
+  if(m.voucherType){
+   sb.rpc('sos_arena_voucher_mission_status',{p_scope:scope,p_key:m.key}).then(q=>{if(!q.error){voucherClaimed=!!q.data?.claimed;updateButton()}}).catch(()=>{});
+  }
+ });
 }
 async function openMissions(){try{const state=await getMissionState();modal('📋 TUGAS HARIAN & MINGGUAN',host=>{let scope='daily';const tabs=document.createElement('div');tabs.className='mission-tabs';const daily=document.createElement('button');daily.type='button';daily.textContent='TUGAS HARIAN';const weekly=document.createElement('button');weekly.type='button';weekly.textContent='TUGAS MINGGUAN';const list=document.createElement('div');function choose(next){scope=next;daily.className=scope==='daily'?'':'secondary';weekly.className=scope==='weekly'?'':'secondary';renderMissionList(list,missionStateCache||state,scope)}daily.onclick=()=>choose('daily');weekly.onclick=()=>choose('weekly');tabs.append(daily,weekly);host.append(tabs,list);choose('daily')})}catch(e){alert(e?.message||String(e))}}
 $('openLevelRewardsButton')?.addEventListener('click',openLevelRewards);
@@ -1880,14 +1904,15 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
 </div>
 
 <style>
-#lobbyProgressActions #openLuckyWheelButton{order:0;flex:0 1 108px!important;min-width:0!important;max-width:108px!important;height:34px!important;min-height:34px!important;padding:0 6px!important;font-size:10px!important;white-space:nowrap!important;border-color:#f8cf5d88;background:linear-gradient(135deg,#4a2a11,#35214c);color:#fff0b3;box-shadow:0 0 12px #ffcc5530}
-#lobbyProgressActions #openMissionsButton{order:1}#lobbyProgressActions #openLevelRewardsButton{order:2}
+#lobbyProgressActions{gap:7px!important;justify-content:flex-end!important}
+#lobbyProgressActions #openLuckyWheelButton{order:0;flex:0 1 108px!important;min-width:0!important;max-width:108px!important;height:34px!important;min-height:34px!important;padding:0 6px!important;font-size:10px!important;white-space:nowrap!important;border-color:#f8cf5d88;background:linear-gradient(135deg,#4a2a11,#35214c);color:#fff0b3;box-shadow:0 0 12px #ffcc5530;margin:0!important}
+#lobbyProgressActions #openMissionsButton{order:1;margin-left:0!important}#lobbyProgressActions #openLevelRewardsButton{order:2;margin-left:0!important}
 #wheelStage{position:relative;width:min(82vw,340px);aspect-ratio:1;margin:18px auto 10px;filter:drop-shadow(0 10px 25px #0008)}
 #wheelDisk{position:absolute;inset:0;border-radius:50%;border:8px solid #ffe8a3;box-shadow:inset 0 0 0 3px #3d2457,0 0 0 4px #f7b84e88;background:conic-gradient(#f1b63e 0 40%,#5c9aff 40% 60%,#d96aff 60% 70%,#43cbd0 70% 75%,#ff75a8 75% 80%,#a9e86d 80% 85%,#ffc76c 85% 90%,#bd8cff 90% 93%,#53d9a4 93% 100%);transform:rotate(0deg);will-change:transform;overflow:hidden}
-#wheelDisk:after{content:'';position:absolute;inset:10px;border-radius:50%;border:2px dashed #fff9}
+#wheelDisk:after{content:'';position:absolute;inset:10px;border-radius:50%;border:2px dashed #fff9;pointer-events:none}.wheel-segment-mark{position:absolute;z-index:1;transform:translate(-50%,-50%);min-width:27px;padding:3px 2px;border-radius:7px;background:#171025d9;border:1px solid #fff9;color:#fff;font-size:9px;font-weight:1000;line-height:1.1;text-align:center;text-shadow:0 1px 2px #000;box-shadow:0 1px 5px #0005;pointer-events:none}
 #wheelPointer{position:absolute;z-index:2;left:50%;top:-10px;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:30px solid #fff2b8;filter:drop-shadow(0 3px 4px #0009)}
 #wheelHub{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#fff4bc,#f6a938 60%,#763b8c);border:4px solid #fff1b6;color:#281334;font-weight:1000;box-shadow:0 0 20px #ffd86caa}
-.wheel-legend{display:grid;grid-template-columns:1fr 1fr;gap:7px}.wheel-legend div{padding:8px;border:1px solid #ffffff1b;border-radius:10px;background:#ffffff08;font-size:12px}.wheel-legend strong{display:block;color:#ffe4a1}.wheel-balance{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;font-weight:900;margin:8px 0}
+.wheel-legend{display:grid;grid-template-columns:1fr 1fr;gap:7px}.wheel-legend div{padding:8px;border:1px solid #ffffff1b;border-radius:10px;background:#ffffff08;font-size:12px;min-width:0}.wheel-legend strong{overflow-wrap:anywhere}.wheel-legend strong{display:block;color:#ffe4a1}.wheel-balance{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;font-weight:900;margin:8px 0}
 @media(max-width:380px){#lobbyProgressActions #openLuckyWheelButton{flex-basis:86px!important;font-size:9px!important}#wheelStage{width:min(78vw,300px)}}
 </style>
 <script>
@@ -1908,8 +1933,8 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
  function makeWheel(host,kind){
   const items=wheelItems(kind);host.innerHTML='';const intro=document.createElement('p');intro.className='muted';intro.textContent=kind==='golden'?'Golden voucher memberi peluang hadiah lebih besar. Setiap putaran menghabiskan 1 golden voucher.':'Setiap putaran menghabiskan 1 voucher biasa. Hadiah ditentukan secara acak oleh server sesuai persentase.';host.append(intro);
   const balance=document.createElement('div');balance.className='wheel-balance';balance.textContent='🎟️ '+Number(accountState.regularVouchers||0)+'  ·  🎫 '+Number(accountState.goldenVouchers||0);host.append(balance);
-  const stage=document.createElement('div');stage.id='wheelStage';const disk=document.createElement('div');disk.id='wheelDisk';const palette=['#f1b63e','#5c9aff','#d96aff','#43cbd0','#ff75a8','#a9e86d','#ffc76c','#bd8cff','#53d9a4'];let total=0;const stops=items.map((it,i)=>{const start=total;total+=it[1];return palette[i]+' '+start+'% '+total+'%'});disk.style.background='conic-gradient('+stops.join(',')+')';const pointer=document.createElement('div');pointer.id='wheelPointer';const hub=document.createElement('div');hub.id='wheelHub';hub.textContent='SPIN';stage.append(disk,pointer,hub);host.append(stage);
-  const legend=document.createElement('div');legend.className='wheel-legend';items.forEach(([name,pct])=>{const el=document.createElement('div');const strong=document.createElement('strong');strong.textContent=name;const small=document.createElement('span');small.textContent=pct+'%';el.append(strong,small);legend.append(el)});host.append(legend);
+  const stage=document.createElement('div');stage.id='wheelStage';const disk=document.createElement('div');disk.id='wheelDisk';const palette=['#f1b63e','#5c9aff','#d96aff','#43cbd0','#ff75a8','#a9e86d','#ffc76c','#bd8cff','#53d9a4'];const wheelMarks=['🪙','🪙','🪙','💎','💎','🪙','🎟️','🎫','🃏'];let total=0;const stops=items.map((it,i)=>{const start=total;total+=it[1];return palette[i]+' '+start+'% '+total+'%'});disk.style.background='conic-gradient('+stops.join(',')+')';let angleSoFar=0;items.forEach(([name,pct],i)=>{const mid=(angleSoFar+pct/2)*3.6;angleSoFar+=pct;const mark=document.createElement('span');mark.className='wheel-segment-mark';mark.textContent=String(i+1)+' '+wheelMarks[i];const rad=mid*Math.PI/180;mark.style.left=(50+Math.sin(rad)*34)+'%';mark.style.top=(50-Math.cos(rad)*34)+'%';mark.title=name+' — '+pct+'%';disk.append(mark)});const pointer=document.createElement('div');pointer.id='wheelPointer';const hub=document.createElement('div');hub.id='wheelHub';hub.textContent='SPIN';stage.append(disk,pointer,hub);host.append(stage);
+  const legend=document.createElement('div');legend.className='wheel-legend';items.forEach(([name,pct],i)=>{const el=document.createElement('div');const strong=document.createElement('strong');strong.textContent=(i+1)+'. '+name;const small=document.createElement('span');small.textContent=pct+'% peluang';el.append(strong,small);legend.append(el)});host.append(legend);
   const spin=document.createElement('button');spin.className='full';spin.textContent=kind==='golden'?'🎫 PUTAR GOLDEN VOUCHER':'🎟️ PUTAR VOUCHER BIASA';spin.disabled=Number(kind==='golden'?accountState.goldenVouchers:accountState.regularVouchers||0)<1;spin.onclick=async()=>{
    if(!sb||!user){alert('Login diperlukan.');return}spin.disabled=true;spin.textContent='RODA BERPUTAR…';
    try{
@@ -1932,4 +1957,5 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
 })();
 </script>
 
+<!-- SOS Arena v13: ordered welcome voice, unified mission claim, labeled wheel and aligned lobby actions -->
 </body></html>
