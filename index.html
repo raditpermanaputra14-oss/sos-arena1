@@ -591,7 +591,7 @@ body:not(.woman-theme) #sosSpotlight.relic-k .relic-final-k{--relic-k-color:#00e
 <div class="currency-chip coins"><span class="currency-icon">🪙</span><span class="currency-value" id="lobbyCoinBalance">0</span></div>
 <div class="currency-chip diamonds"><span class="currency-icon">💎</span><span class="currency-value" id="lobbyDiamondBalance">0</span></div>
 <button aria-label="Tukar koin dan klaim berlian" id="lobbyCurrencyPlus" title="Tukar koin / klaim berlian" type="button">＋</button>
-</div><div id="lobbyProgressActions" aria-label="Hadiah dan tugas"><button id="openMissionsButton" type="button" class="secondary">📋 TUGAS</button><button id="openLevelRewardsButton" type="button" class="secondary">🎁 HADIAH LEVEL</button></div><div class="hero"><div class="eyebrow">Welcome to the arena</div><h1>LOBI GAME</h1><p>Bentuk SOS secara horizontal, vertikal, atau diagonal. Setiap garis SOS memberi 1 poin; jika kamu mendapat poin, giliranmu berlanjut.</p></div>
+</div><div id="lobbyProgressActions" aria-label="Hadiah dan tugas"><button id="openLuckyWheelButton" type="button" class="secondary">🎡 SPIN</button><button id="openMissionsButton" type="button" class="secondary">📋 TUGAS</button><button id="openLevelRewardsButton" type="button" class="secondary">🎁 HADIAH LEVEL</button></div><div class="hero"><div class="eyebrow">Welcome to the arena</div><h1>LOBI GAME</h1><p>Bentuk SOS secara horizontal, vertikal, atau diagonal. Setiap garis SOS memberi 1 poin; jika kamu mendapat poin, giliranmu berlanjut.</p></div>
 <div class="grid">
 <div class="panel"><h2>🎮 Mode Offline</h2><p class="muted">Main bergantian di perangkat yang sama. Pilih jumlah pemain dan ukuran papan.</p><div class="stack"><div><label>Jumlah pemain</label><select id="offlinePlayers"><option value="2">2 pemain</option><option value="3">3 pemain</option><option value="4">4 pemain</option><option value="5">5 pemain</option><option value="6">6 pemain</option></select></div><div><label>Ukuran papan</label><select id="offlineSize"><option value="5">5 × 5</option><option value="6">6 × 6</option><option selected="" value="7">7 × 7</option><option value="8">8 × 8</option><option value="9">9 × 9</option></select></div><div class="stack" id="offlineNames"></div><button class="full" id="startOffline">MULAI OFFLINE</button></div></div>
 <div class="panel"><h2>🌐 Mode Online</h2><p class="muted">Isi nickname terlebih dahulu untuk membuat room atau bergabung dengan kode 6 karakter. Kode room berlaku 5 menit sejak dibuat.</p><div class="stack"><div><label>Nickname game</label><input id="nickname" maxlength="18" placeholder="Contoh: SOSMaster" required=""/></div><div><label>Mode permainan untuk room baru</label><div id="onlineModeChoices" role="group" aria-label="Pilih mode online"><button type="button" data-online-mode="solo" aria-pressed="true"><span class="mode-name">👤 SOLO</span><span class="mode-desc">Aturan online biasa</span></button><button type="button" data-online-mode="team" aria-pressed="false"><span class="mode-name">🛡️ TIM S vs TIM O</span><span class="mode-desc">5 kursi per tim</span></button></div><input id="onlineMode" type="hidden" value="solo"/><p id="onlineModeNote" class="muted">Mode solo menggunakan aturan online seperti biasa.</p></div><div><label>Ukuran papan</label><select id="onlineSize"><option value="5">5 × 5</option><option value="6">6 × 6</option><option selected="" value="7">7 × 7</option><option value="8">8 × 8</option><option value="9">9 × 9</option></select></div><button class="full" id="createRoom">＋ BUAT ROOM</button><div><label>Kode room</label><input id="joinCode" maxlength="6" placeholder="A1B2C3" style="text-transform:uppercase"/></div><button class="secondary full" id="joinRoom">GABUNG ROOM</button><div aria-live="polite" class="muted" id="onlineMsg"></div></div></div>
@@ -985,7 +985,7 @@ function renderSystemInbox(){
  const host=$('systemInboxMessages');if(!host)return;host.innerHTML='';
  const read=inboxReadIds();
  const groups={};
- SYSTEM_INBOX_MESSAGES.forEach(m=>{
+ [...SYSTEM_INBOX_MESSAGES].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).forEach(m=>{
   const d=new Date(m.createdAt);
   const key=d.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
   (groups[key]||(groups[key]=[])).push(m);
@@ -1602,18 +1602,18 @@ async function refreshAccountProfile(){
  if(!user||!sb)return false;
  const status=$('accountStatus');
  try{
-  let r=await sb.from('sos_profiles').select('user_id,player_id,coins,diamonds,display_name,level,exp,is_banned,ban_until').eq('user_id',user.id).maybeSingle();
+  let r=await sb.from('sos_profiles').select('user_id,player_id,coins,diamonds,regular_vouchers,golden_vouchers,display_name,level,exp,is_banned,ban_until').eq('user_id',user.id).maybeSingle();
   if(r.error)throw r.error;
   let profile=r.data;
   if(profile?.is_banned&&(!profile.ban_until||new Date(profile.ban_until)>new Date())){await sb.auth.signOut();user=null;showScreen('auth');throw new Error('Akun ini diblokir oleh developer. Hubungi pengelola jika merasa ini keliru.');}
   if(!profile){
    const newId=(user.email||'').toLowerCase()===DEV_EMAIL?'000000':makePlayerId();
-   const created=await sb.from('sos_profiles').insert({user_id:user.id,player_id:newId,coins:0,diamonds:0,display_name:(user.user_metadata?.nickname||user.email?.split('@')[0]||'Pemain')}).select('user_id,player_id,coins,diamonds,display_name,level,exp,is_banned,ban_until').single();
+   const created=await sb.from('sos_profiles').insert({user_id:user.id,player_id:newId,coins:0,diamonds:0,display_name:(user.user_metadata?.nickname||user.email?.split('@')[0]||'Pemain')}).select('user_id,player_id,coins,diamonds,regular_vouchers,golden_vouchers,display_name,level,exp,is_banned,ban_until').single();
    if(created.error)throw created.error;
    profile=created.data;
   }
   accountState.id=String(profile.player_id||'').replace(/^#/,'').toUpperCase();
-  accountState.coins=Number(profile.coins||0);accountState.diamonds=Number(profile.diamonds||0);accountState.level=Number(profile.level||1);accountState.exp=Number(profile.exp||0);accountState.nickname=profile.display_name||accountState.nickname||'';
+  accountState.coins=Number(profile.coins||0);accountState.diamonds=Number(profile.diamonds||0);accountState.regularVouchers=Number(profile.regular_vouchers||0);accountState.goldenVouchers=Number(profile.golden_vouchers||0);accountState.level=Number(profile.level||1);accountState.exp=Number(profile.exp||0);accountState.nickname=profile.display_name||accountState.nickname||'';
   await loadCloudInventory();
   saveAccountState();renderAccountState();
   if(status)status.textContent='';
@@ -1636,7 +1636,7 @@ function addExp(n){accountState.exp+=n;while(accountState.exp>=expNeeded()){acco
 function modal(title,build){const el=$('featureModal');if(el.parentElement!==document.body)document.body.appendChild(el);$('featureModalTitle').textContent=title;$('featureModalBody').innerHTML='';el.classList.remove('hidden');el.classList.add('open');el.style.display='flex';el.style.zIndex='99999';build($('featureModalBody'))}
 
 const DAILY_MISSION_DEFS=[
- {key:'login',title:'Login hari ini',desc:'Masuk ke SOS Arena hari ini.',progress:'login',target:1,coins:100,diamonds:0},
+ {key:'login',title:'Login hari ini',desc:'Masuk ke SOS Arena hari ini.',progress:'login',target:1,coins:100,diamonds:0,voucherType:'regular'},
  {key:'offline_full',title:'Selesaikan papan offline',desc:'Selesaikan satu pertandingan offline sampai papan penuh.',progress:'offline_full',target:1,coins:100,diamonds:0},
  {key:'online_full',title:'Selesaikan papan online',desc:'Selesaikan satu pertandingan online sampai papan penuh, mode solo atau tim.',progress:'online_full',target:1,coins:200,diamonds:0},
  {key:'online_win_1',title:'Menang online 1 kali',desc:'Menang karena papan penuh, bukan karena lawan menyerah.',progress:'online_wins',target:1,coins:300,diamonds:0},
@@ -1647,7 +1647,7 @@ const DAILY_MISSION_DEFS=[
  {key:'online_win_25',title:'Menang online 25 kali',desc:'Kemenangan dihitung hanya jika papan penuh.',progress:'online_wins',target:25,coins:5000,diamonds:1}
 ];
 const WEEKLY_MISSION_DEFS=[
- {key:'login_days_6',title:'Login selama 6 hari',desc:'Login pada enam hari kalender yang berbeda dalam minggu ini.',progress:'login_days',target:6,coins:5000,diamonds:0},
+ {key:'login_days_6',title:'Login selama 6 hari',desc:'Login pada enam hari kalender yang berbeda dalam minggu ini.',progress:'login_days',target:6,coins:5000,diamonds:0,voucherType:'golden'},
  {key:'offline_full_50',title:'Selesaikan 50 papan offline',desc:'Setiap pertandingan dihitung setelah papan penuh.',progress:'offline_full',target:50,coins:3000,diamonds:0},
  {key:'online_full_100',title:'Selesaikan 100 papan online',desc:'Mode solo maupun tim; hanya papan penuh.',progress:'online_full',target:100,coins:10000,diamonds:5},
  {key:'online_win_100',title:'Menang online 100 kali',desc:'Menang karena papan penuh; kemenangan dari lawan menyerah tidak dihitung.',progress:'online_wins',target:100,coins:20000,diamonds:10},
@@ -1657,7 +1657,7 @@ const WEEKLY_MISSION_DEFS=[
 let missionStateCache=null;
 async function getMissionState(){if(!user||!sb)throw new Error('Login diperlukan untuk menggunakan hadiah level dan tugas.');const r=await sb.rpc('sos_arena_get_progress');if(r.error)throw r.error;missionStateCache=r.data||{};return missionStateCache}
 async function recordMissionEvent(event){if(!user||!sb)return;try{const r=await sb.rpc('sos_arena_record_mission',{p_event:event});if(r.error)throw r.error;missionStateCache=r.data||missionStateCache}catch(e){console.warn('Progress tugas belum tersimpan:',e?.message||e)}}
-function missionRewardText(m){let parts=[];if(m.coins)parts.push('🪙 '+m.coins.toLocaleString('id-ID'));if(m.diamonds)parts.push('💎 '+m.diamonds);return parts.join(' · ')}
+function missionRewardText(m){let parts=[];if(m.coins)parts.push('🪙 '+m.coins.toLocaleString('id-ID'));if(m.diamonds)parts.push('💎 '+m.diamonds);if(m.voucherType==='regular')parts.push('🎟️ 1 voucher biasa');if(m.voucherType==='golden')parts.push('🎫 1 golden voucher');return parts.join(' · ')}
 function renderLevelRewards(host,state){
  host.innerHTML='';const note=document.createElement('p');note.className='muted';note.textContent='Hadiah setiap level hanya dapat diambil satu kali. Level yang sudah kamu capai dapat diklaim; level berikutnya tetap terlihat dan terkunci.';host.append(note);
  const claimed=Array.isArray(state.claimed_levels)?state.claimed_levels.map(Number):[];const current=Math.max(1,Number(accountState.level)||1);const max=Math.max(100,current+20);
@@ -1693,7 +1693,7 @@ async function openLevelRewards(){
 function renderMissionList(host,state,scope){
  host.innerHTML='';const defs=scope==='daily'?DAILY_MISSION_DEFS:WEEKLY_MISSION_DEFS;const progress=state[scope==='daily'?'daily_progress':'weekly_progress']||{};const claimed=Array.isArray(state[scope==='daily'?'daily_claimed':'weekly_claimed'])?state[scope==='daily'?'daily_claimed':'weekly_claimed']:[];
  const reset=document.createElement('p');reset.className='muted';reset.textContent=scope==='daily'?'Reset harian setiap pukul 00.00 WIB berdasarkan waktu server.':'Reset mingguan setiap Senin pukul 00.00 WIB berdasarkan waktu server.';host.append(reset);
- defs.forEach(m=>{const value=Math.max(0,Number(progress[m.progress]||0));const complete=value>=m.target,done=claimed.includes(m.key);const row=document.createElement('div');row.className='mission-row';const info=document.createElement('div');const h=document.createElement('h4');h.textContent=m.title;const p=document.createElement('p');p.textContent=m.desc+' Hadiah: '+missionRewardText(m);const track=document.createElement('div');track.className='mission-progress';const fill=document.createElement('span');fill.style.width=Math.min(100,value/m.target*100)+'%';track.append(fill);const count=document.createElement('p');count.style.marginTop='5px';count.textContent=Math.min(value,m.target)+' / '+m.target;info.append(h,p,track,count);const btn=document.createElement('button');btn.type='button';btn.textContent=done?'DIAMBIL':complete?'KLAIM':'BELUM SELESAI';btn.disabled=done||!complete;btn.onclick=async()=>{btn.disabled=true;try{const r=await sb.rpc('sos_arena_claim_mission',{p_scope:scope,p_key:m.key});if(r.error)throw r.error;await refreshAccountProfile();const latest=await getMissionState();renderMissionList(host,latest,scope)}catch(e){alert('Hadiah tugas gagal diklaim: '+(e?.message||String(e)));btn.disabled=false}};row.append(info,btn);host.append(row)})
+ defs.forEach(m=>{const value=Math.max(0,Number(progress[m.progress]||0));const complete=value>=m.target,done=claimed.includes(m.key);const row=document.createElement('div');row.className='mission-row';const info=document.createElement('div');const h=document.createElement('h4');h.textContent=m.title;const p=document.createElement('p');p.textContent=m.desc+' Hadiah: '+missionRewardText(m);const track=document.createElement('div');track.className='mission-progress';const fill=document.createElement('span');fill.style.width=Math.min(100,value/m.target*100)+'%';track.append(fill);const count=document.createElement('p');count.style.marginTop='5px';count.textContent=Math.min(value,m.target)+' / '+m.target;info.append(h,p,track,count);const btn=document.createElement('button');btn.type='button';btn.textContent=done?'DIAMBIL':complete?'KLAIM':'BELUM SELESAI';btn.disabled=done||!complete;btn.onclick=async()=>{btn.disabled=true;try{const r=await sb.rpc('sos_arena_claim_mission',{p_scope:scope,p_key:m.key});if(r.error)throw r.error;await refreshAccountProfile();const latest=await getMissionState();renderMissionList(host,latest,scope)}catch(e){alert('Hadiah tugas gagal diklaim: '+(e?.message||String(e)));btn.disabled=false}};row.append(info,btn);if(m.voucherType){const vb=document.createElement('button');vb.type='button';vb.textContent=m.voucherType==='regular'?'KLAIM 🎟️ VOUCHER':'KLAIM 🎫 GOLDEN';vb.style.marginTop='7px';vb.disabled=!complete;vb.onclick=async()=>{vb.disabled=true;try{const r=await sb.rpc('sos_arena_claim_voucher_mission',{p_scope:scope,p_key:m.key});if(r.error)throw r.error;vb.textContent='VOUCHER DIAMBIL';await refreshAccountProfile();}catch(e){alert('Voucher gagal diklaim: '+(e?.message||String(e)));vb.disabled=false}};row.append(vb);try{sb.rpc('sos_arena_voucher_mission_status',{p_scope:scope,p_key:m.key}).then(q=>{if(!q.error&&q.data?.claimed){vb.disabled=true;vb.textContent='VOUCHER DIAMBIL'}})}catch(_){}}host.append(row)})
 }
 async function openMissions(){try{const state=await getMissionState();modal('📋 TUGAS HARIAN & MINGGUAN',host=>{let scope='daily';const tabs=document.createElement('div');tabs.className='mission-tabs';const daily=document.createElement('button');daily.type='button';daily.textContent='TUGAS HARIAN';const weekly=document.createElement('button');weekly.type='button';weekly.textContent='TUGAS MINGGUAN';const list=document.createElement('div');function choose(next){scope=next;daily.className=scope==='daily'?'':'secondary';weekly.className=scope==='weekly'?'':'secondary';renderMissionList(list,missionStateCache||state,scope)}daily.onclick=()=>choose('daily');weekly.onclick=()=>choose('weekly');tabs.append(daily,weekly);host.append(tabs,list);choose('daily')})}catch(e){alert(e?.message||String(e))}}
 $('openLevelRewardsButton')?.addEventListener('click',openLevelRewards);
@@ -1761,6 +1761,13 @@ function openCurrencyMenu(){modal('DOMPET SOS ARENA',b=>{
  let balance=document.createElement('div');balance.className='feature-row';balance.textContent='🪙 '+Number(accountState.coins||0).toLocaleString('id-ID')+' koin  ·  💎 '+Number(accountState.diamonds||0).toLocaleString('id-ID')+' berlian';b.append(balance);
  b.append(field('Jumlah berlian untuk ditukar (1 💎 = 1.000 koin)','coinConvert','1','number'));
  let exchange=document.createElement('button');exchange.textContent='TUKAR BERLIAN → KOIN';exchange.onclick=async()=>{let n=Math.floor(Number($('coinConvert').value));if(!sb||!user){alert('Login diperlukan.');return}if(!Number.isSafeInteger(n)||n<1){alert('Jumlah tidak valid.');return}exchange.disabled=true;try{let r=await sb.rpc('sos_exchange_diamonds_for_coins',{p_diamonds:n});if(r.error)throw r.error;await refreshAccountProfile();alert('Penukaran berhasil. Saldo Supabase diperbarui.');openCurrencyMenu()}catch(e){alert('Penukaran gagal: '+e.message)}finally{exchange.disabled=false}};b.append(exchange);
+ let voucherTitle=document.createElement('h3');voucherTitle.textContent='🎟️ Penukaran Voucher';b.append(voucherTitle);
+ let voucherBalance=document.createElement('div');voucherBalance.className='feature-row';voucherBalance.textContent='🎟️ '+Number(accountState.regularVouchers||0)+' voucher biasa · 🎫 '+Number(accountState.goldenVouchers||0)+' golden voucher';b.append(voucherBalance);
+ let regularExchange=document.createElement('button');regularExchange.textContent='TUKAR 25 💎 → 1 🎟️ VOUCHER BIASA';regularExchange.onclick=()=>exchangeDiamondsForVoucher('regular');b.append(regularExchange);
+ let goldenExchange=document.createElement('button');goldenExchange.textContent='TUKAR 100 💎 → 1 🎫 GOLDEN VOUCHER';goldenExchange.onclick=()=>exchangeDiamondsForVoucher('golden');b.append(goldenExchange);
+ let redeemTitle=document.createElement('h3');redeemTitle.textContent='🎁 Kode Redeem Hadiah';b.append(redeemTitle);
+ let redeemInput=document.createElement('input');redeemInput.id='sosRedeemCodeInput';redeemInput.autocomplete='off';redeemInput.placeholder='Masukkan kode redeem';redeemInput.maxLength=32;b.append(redeemInput);
+ let redeemBtn=document.createElement('button');redeemBtn.textContent='KLAIM 100 💎 + 10.000 🪙';redeemBtn.onclick=()=>redeemSOSCode(redeemInput.value,redeemBtn);b.append(redeemBtn);
  let h=document.createElement('h3');h.textContent='💎 Klaim berlian harian';b.append(h);let status=document.createElement('div');status.id='dailyDiamondClaimModal';status.className='notice';status.textContent='Memeriksa status klaim…';b.append(status);refreshDailyDiamondClaim();
 })}
 $('lobbyOpenShop').onclick=$('openShop').onclick=$('shopShortcut').onclick=()=>modal('TOKO · 30 BARANG UNIK',b=>{let intro=document.createElement('p');intro.className='muted';intro.textContent='Saldo: '+Number(accountState.coins).toLocaleString('id-ID')+' koin · '+accountState.diamonds+' berlian. Pembelian tersimpan permanen di akun Supabase. Kartu hanya dapat digunakan dalam pertandingan online.';b.append(intro);shopItems.slice(0,30).forEach(item=>{let row=document.createElement('div');row.className='feature-row';let info=document.createElement('span');info.textContent=(item.currency==='coins'?'🪙 ':'💎 ')+item.name;let sub=document.createElement('small');sub.textContent=item.rarity+' · '+item.price+' '+(item.currency==='coins'?'koin':'berlian')+' — '+item.description;info.append(sub);let ownedCount=(accountState.inventory||[]).reduce((n,x)=>n+(x.itemId===item.id?(x.quantity||1):0),0);let bt=document.createElement('button');bt.textContent=ownedCount?'Beli lagi ('+ownedCount+')':'BELI';bt.onclick=async()=>{if(!sb||!user){alert('Login untuk membeli dan menyimpan barang.');return}bt.disabled=true;try{const r=await sb.rpc('sos_purchase_item',{p_item_id:item.id,p_quantity:1});if(r.error)throw r.error;await refreshAccountProfile();await loadCloudInventory();recordMissionEvent(item.currency==='coins'?'coin_card_purchase':'diamond_card_purchase');alert(item.name+' berhasil dibeli.');closeFeatureModal();$('lobbyOpenShop').click()}catch(e){alert('Pembelian gagal: '+e.message+'\\nPastikan SQL pembaruan sudah dijalankan di project Supabase yang sama.')}finally{bt.disabled=false}};row.append(info,bt);b.append(row)})});
@@ -1805,17 +1812,22 @@ $('openDeveloper').onclick=()=>modal('WEWENANG DEVELOPER',b=>{
  b.append(field('Jumlah koin (0 jika tidak dikirim)','devCoins','0','number'));
  b.append(field('Jumlah berlian (0 jika tidak dikirim)','devDiamonds','0','number'));
  b.append(field('Jumlah EXP (0 jika tidak dikirim)','devExp','0','number'));
+ b.append(field('Jumlah voucher biasa (0 jika tidak dikirim)','devRegularVouchers','0','number'));
+ b.append(field('Jumlah golden voucher (0 jika tidak dikirim)','devGoldenVouchers','0','number'));
+ const redeemCodePanel=document.createElement('div');redeemCodePanel.className='notice';redeemCodePanel.textContent='Kode redeem aktif akan dimuat dari server.';b.append(redeemCodePanel);
+ const refreshCodeBtn=document.createElement('button');refreshCodeBtn.type='button';refreshCodeBtn.textContent='🔄 TAMPILKAN KODE REDEEM AKTIF';refreshCodeBtn.onclick=async()=>{refreshCodeBtn.disabled=true;try{const r=await sb.rpc('sos_developer_current_redeem_code');if(r.error)throw r.error;redeemCodePanel.textContent='KODE REDEEM AKTIF: '+r.data.code+' · berganti setiap 3 jam (waktu server).';}catch(e){redeemCodePanel.textContent='Gagal memuat kode. Jalankan SQL migrasi roda keberuntungan di Supabase. '+(e?.message||String(e));}finally{refreshCodeBtn.disabled=false}};b.append(refreshCodeBtn);
  const gift=document.createElement('button');gift.textContent='KIRIM GIFT';gift.onclick=async()=>{
   const recipient=$('devRecipient').value.trim().replace(/^#/,'').toUpperCase();
-  const c=Number($('devCoins').value),d=Number($('devDiamonds').value),x=Number($('devExp').value);
+  const c=Number($('devCoins').value),d=Number($('devDiamonds').value),x=Number($('devExp').value),rv=Number($('devRegularVouchers').value),gv=Number($('devGoldenVouchers').value);
   if(!sb||!user){alert('Login ke akun developer terlebih dahulu.');return}
-  if(!/^[A-Z0-9]{6}$/.test(recipient)||[c,d,x].some(n=>!Number.isSafeInteger(n)||n<0)||(c===0&&d===0&&x===0)){alert('ID harus 6 karakter dan setidaknya satu hadiah harus lebih dari 0. Semua jumlah harus bilangan bulat non-negatif.');return}
+  if(!/^[A-Z0-9]{6}$/.test(recipient)||[c,d,x,rv,gv].some(n=>!Number.isSafeInteger(n)||n<0)||(c===0&&d===0&&x===0&&rv===0&&gv===0)){alert('ID harus 6 karakter dan setidaknya satu hadiah harus lebih dari 0. Semua jumlah harus bilangan bulat non-negatif.');return}
   gift.disabled=true;gift.textContent='MENGIRIM…';
   try{
    if((user.email||'').trim().toLowerCase()!==DEV_EMAIL)throw new Error('Akun login bukan akun developer yang diizinkan.');
-   const {error}=await sb.rpc('sos_developer_gift',{p_player_id:recipient,p_coins:c,p_diamonds:d,p_exp:x});if(error)throw error;
-   alert('Berhasil mengirim hadiah ke #'+recipient+' (koin, berlian, dan/atau EXP).');
-   $('devCoins').value='0';$('devDiamonds').value='0';$('devExp').value='0';await refreshAccountProfile();
+   if(c||d||x){const {error}=await sb.rpc('sos_developer_gift',{p_player_id:recipient,p_coins:c,p_diamonds:d,p_exp:x});if(error)throw error;}
+   if(rv||gv){const vr=await sb.rpc('sos_developer_gift_vouchers',{p_player_id:recipient,p_regular:rv,p_golden:gv});if(vr.error)throw vr.error;}
+   alert('Berhasil mengirim hadiah ke #'+recipient+' (saldo, EXP, dan/atau voucher).');
+   $('devCoins').value='0';$('devDiamonds').value='0';$('devExp').value='0';$('devRegularVouchers').value='0';$('devGoldenVouchers').value='0';await refreshAccountProfile();
   }catch(err){const msg=(err?.message||String(err));alert('Gift gagal dikirim: '+msg+(msg.toLowerCase().includes('overflow')||msg.toLowerCase().includes('out of range')?'\nKemungkinan kolom saldo/EXP masih integer atau fungsi RPC lama aktif. Jalankan sos_arena_developer_migration_fix_overflow.sql di Supabase SQL Editor, lalu coba lagi.':'\nPastikan SQL migrasi SOS Arena terbaru sudah dijalankan di project Supabase yang dipakai situs.'))}finally{gift.disabled=false;gift.textContent='KIRIM GIFT'}
  };b.append(gift);
  b.append(field('ID akun yang akan diban (#6 karakter)','devBanId',''));
@@ -1866,4 +1878,58 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
  <div class="names"><div class="name-list" id="startNamesLeft"></div><span></span><div class="name-list" id="startNamesRight"></div></div>
  <div class="loading"><strong>MEMUAT</strong><span id="startLoadingDetail">Sedang menata papan…</span></div>
 </div>
+
+<style>
+#lobbyProgressActions #openLuckyWheelButton{order:0;flex:0 1 108px!important;min-width:0!important;max-width:108px!important;height:34px!important;min-height:34px!important;padding:0 6px!important;font-size:10px!important;white-space:nowrap!important;border-color:#f8cf5d88;background:linear-gradient(135deg,#4a2a11,#35214c);color:#fff0b3;box-shadow:0 0 12px #ffcc5530}
+#lobbyProgressActions #openMissionsButton{order:1}#lobbyProgressActions #openLevelRewardsButton{order:2}
+#wheelStage{position:relative;width:min(82vw,340px);aspect-ratio:1;margin:18px auto 10px;filter:drop-shadow(0 10px 25px #0008)}
+#wheelDisk{position:absolute;inset:0;border-radius:50%;border:8px solid #ffe8a3;box-shadow:inset 0 0 0 3px #3d2457,0 0 0 4px #f7b84e88;background:conic-gradient(#f1b63e 0 40%,#5c9aff 40% 60%,#d96aff 60% 70%,#43cbd0 70% 75%,#ff75a8 75% 80%,#a9e86d 80% 85%,#ffc76c 85% 90%,#bd8cff 90% 93%,#53d9a4 93% 100%);transform:rotate(0deg);will-change:transform;overflow:hidden}
+#wheelDisk:after{content:'';position:absolute;inset:10px;border-radius:50%;border:2px dashed #fff9}
+#wheelPointer{position:absolute;z-index:2;left:50%;top:-10px;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:30px solid #fff2b8;filter:drop-shadow(0 3px 4px #0009)}
+#wheelHub{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);width:70px;height:70px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,#fff4bc,#f6a938 60%,#763b8c);border:4px solid #fff1b6;color:#281334;font-weight:1000;box-shadow:0 0 20px #ffd86caa}
+.wheel-legend{display:grid;grid-template-columns:1fr 1fr;gap:7px}.wheel-legend div{padding:8px;border:1px solid #ffffff1b;border-radius:10px;background:#ffffff08;font-size:12px}.wheel-legend strong{display:block;color:#ffe4a1}.wheel-balance{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;font-weight:900;margin:8px 0}
+@media(max-width:380px){#lobbyProgressActions #openLuckyWheelButton{flex-basis:86px!important;font-size:9px!important}#wheelStage{width:min(78vw,300px)}}
+</style>
+<script>
+(function(){
+ const $wheel=id=>document.getElementById(id);
+ window.exchangeDiamondsForVoucher=async function(kind){
+  if(!window.supabase||!sb||!user){alert('Login diperlukan.');return}
+  const cost=kind==='golden'?100:25, label=kind==='golden'?'golden voucher':'voucher biasa';
+  if(Number(accountState.diamonds||0)<cost){alert('Saldo berlian tidak cukup.');return}
+  if(!confirm('Tukar '+cost+' berlian menjadi 1 '+label+'? Penukaran tidak bisa dibatalkan.'))return;
+  try{const r=await sb.rpc('sos_arena_exchange_voucher',{p_kind:kind});if(r.error)throw r.error;await refreshAccountProfile();alert('Berhasil menukar berlian menjadi '+label+'.');openCurrencyMenu()}catch(e){alert('Penukaran gagal: '+(e?.message||String(e))+'\nPastikan SQL migrasi roda keberuntungan sudah dijalankan.')} 
+ };
+ window.redeemSOSCode=async function(code,btn){
+  if(!sb||!user){alert('Login diperlukan.');return}code=String(code||'').trim().toUpperCase();if(!code){alert('Masukkan kode redeem.');return}
+  if(btn)btn.disabled=true;try{const r=await sb.rpc('sos_arena_redeem_code',{p_code:code});if(r.error)throw r.error;await refreshAccountProfile();alert('Kode berhasil ditukar! Hadiah 100 berlian dan 10.000 koin telah masuk.');openCurrencyMenu()}catch(e){alert('Kode redeem gagal: '+(e?.message||String(e)))}finally{if(btn)btn.disabled=false}
+ };
+ function wheelItems(kind){return kind==='golden'?[['100 koin',5],['1.000 koin',15],['2.500 koin',20],['1 berlian',10],['5 berlian',10],['5.000 koin',10],['1 voucher 🎟️',10],['1 golden 🎫',6],['Kartu (koin/berlian)',14]]:[['100 koin',40],['1.000 koin',20],['2.500 koin',10],['1 berlian',5],['5 berlian',5],['5.000 koin',5],['1 voucher 🎟️',5],['1 golden 🎫',3],['Kartu (koin/berlian)',7]]}
+ function makeWheel(host,kind){
+  const items=wheelItems(kind);host.innerHTML='';const intro=document.createElement('p');intro.className='muted';intro.textContent=kind==='golden'?'Golden voucher memberi peluang hadiah lebih besar. Setiap putaran menghabiskan 1 golden voucher.':'Setiap putaran menghabiskan 1 voucher biasa. Hadiah ditentukan secara acak oleh server sesuai persentase.';host.append(intro);
+  const balance=document.createElement('div');balance.className='wheel-balance';balance.textContent='🎟️ '+Number(accountState.regularVouchers||0)+'  ·  🎫 '+Number(accountState.goldenVouchers||0);host.append(balance);
+  const stage=document.createElement('div');stage.id='wheelStage';const disk=document.createElement('div');disk.id='wheelDisk';const palette=['#f1b63e','#5c9aff','#d96aff','#43cbd0','#ff75a8','#a9e86d','#ffc76c','#bd8cff','#53d9a4'];let total=0;const stops=items.map((it,i)=>{const start=total;total+=it[1];return palette[i]+' '+start+'% '+total+'%'});disk.style.background='conic-gradient('+stops.join(',')+')';const pointer=document.createElement('div');pointer.id='wheelPointer';const hub=document.createElement('div');hub.id='wheelHub';hub.textContent='SPIN';stage.append(disk,pointer,hub);host.append(stage);
+  const legend=document.createElement('div');legend.className='wheel-legend';items.forEach(([name,pct])=>{const el=document.createElement('div');const strong=document.createElement('strong');strong.textContent=name;const small=document.createElement('span');small.textContent=pct+'%';el.append(strong,small);legend.append(el)});host.append(legend);
+  const spin=document.createElement('button');spin.className='full';spin.textContent=kind==='golden'?'🎫 PUTAR GOLDEN VOUCHER':'🎟️ PUTAR VOUCHER BIASA';spin.disabled=Number(kind==='golden'?accountState.goldenVouchers:accountState.regularVouchers||0)<1;spin.onclick=async()=>{
+   if(!sb||!user){alert('Login diperlukan.');return}spin.disabled=true;spin.textContent='RODA BERPUTAR…';
+   try{
+    const r=await sb.rpc('sos_arena_spin',{p_voucher_type:kind});if(r.error)throw r.error;const result=r.data||{};
+    const labels=['100 koin','1.000 koin','2.500 koin','1 berlian','5 berlian','5.000 koin','1 voucher 🎟️','1 golden 🎫','Kartu (koin/berlian)'];
+    const index=Math.max(0,Math.min(8,Number(result.segment)||0));const cumulative=items.slice(0,index).reduce((sum,it)=>sum+it[1],0);const target=((360-(cumulative+items[index][1]/2)*3.6)%360+360)%360;const current=((Number((disk.style.transform.match(/rotate\(([-\d.]+)deg\)/)||[])[1])||0)%360+360)%360;const delta=((target-current+360)%360)+360*6;disk.style.transition='none';disk.style.transform='rotate('+current+'deg)';void disk.offsetWidth;disk.style.transition='transform 5.8s cubic-bezier(.08,.72,.12,1)';disk.style.transform='rotate('+(current+delta)+'deg)';
+    await new Promise(resolve=>setTimeout(resolve,5900));await refreshAccountProfile();
+    let prize=result.prize||labels[index];if(result.item_id){const item=shopItems.find(x=>x.id===Number(result.item_id));if(item)prize='Kartu: '+item.name}
+    alert('🎉 HADIAH SPIN\n'+prize+'\n\nSaldo dan inventaris sudah diperbarui.');closeFeatureModal();openLuckyWheel();
+   }catch(e){alert('Spin gagal: '+(e?.message||String(e))+'\nPastikan SQL migrasi roda keberuntungan sudah dijalankan.');spin.disabled=false;spin.textContent=kind==='golden'?'🎫 PUTAR GOLDEN VOUCHER':'🎟️ PUTAR VOUCHER BIASA'}
+  };host.append(spin);
+ }
+ window.openLuckyWheel=function(){
+  modal('🎡 RODA KEBERUNTUNGAN',host=>{
+   const tabs=document.createElement('div');tabs.className='mission-tabs';const normal=document.createElement('button');normal.type='button';normal.textContent='🎟️ VOUCHER BIASA';const golden=document.createElement('button');golden.type='button';golden.textContent='🎫 GOLDEN VOUCHER';const body=document.createElement('div');function choose(k){normal.className=k==='regular'?'':'secondary';golden.className=k==='golden'?'':'secondary';makeWheel(body,k)}normal.onclick=()=>choose('regular');golden.onclick=()=>choose('golden');tabs.append(normal,golden);host.append(tabs,body);choose('regular');
+  });
+ };
+ $wheel('openLuckyWheelButton')?.addEventListener('click',openLuckyWheel);
+ // Existing wallet actions remain available; the wheel can be used only while logged in.
+})();
+</script>
+
 </body></html>
