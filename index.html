@@ -1613,6 +1613,8 @@ setInterval(()=>{if(room){updateExpiry();if(mode==='online'&&screen==='game')upd
    in this browser as a fallback; shared online economy/social actions require the SQL backend. */
 const DEV_EMAIL='raditpermanaputra14@gmail.com';
 const accountState={id:'',level:1,exp:0,coins:0,diamonds:0,nickname:'',bio:'',friends:[],requests:[],inventory:[],equipped:null,lastAdWeek:'',inbox:[]};
+// Lindungi nama publik yang sama persis dengan bagian sebelum @ pada email akun.
+function maskEmailBasedName(name,email){const n=String(name||'').trim(),local=String(email||'').split('@')[0].trim();if(!n||!local||!String(email||'').includes('@')||n.toLocaleLowerCase()!==local.toLocaleLowerCase())return n;return local.slice(0,5)+'xxxxx'}
 function accountKey(){return 'sosArenaAccount_v1_'+(user?.id||'guest')}
 function loadAccountState(){
  let d={};try{d=JSON.parse(localStorage.getItem(accountKey())||'{}')}catch(e){}
@@ -1642,10 +1644,12 @@ async function refreshAccountProfile(){
   if(profile?.is_banned&&(!profile.ban_until||new Date(profile.ban_until)>new Date())){await sb.auth.signOut();user=null;showScreen('auth');throw new Error('Akun ini diblokir oleh developer. Hubungi pengelola jika merasa ini keliru.');}
   if(!profile){
    const newId=(user.email||'').toLowerCase()===DEV_EMAIL?'000000':makePlayerId();
-   const created=await sb.from('sos_profiles').insert({user_id:user.id,player_id:newId,coins:0,diamonds:0,display_name:(user.user_metadata?.nickname||user.email?.split('@')[0]||'Pemain')}).select('user_id,player_id,coins,diamonds,regular_vouchers,golden_vouchers,display_name,level,exp,is_banned,ban_until').single();
+   const created=await sb.from('sos_profiles').insert({user_id:user.id,player_id:newId,coins:0,diamonds:0,display_name:maskEmailBasedName(user.user_metadata?.nickname||user.email?.split('@')[0]||'Pemain',user.email)||'Pemain'}).select('user_id,player_id,coins,diamonds,regular_vouchers,golden_vouchers,display_name,level,exp,is_banned,ban_until').single();
    if(created.error)throw created.error;
    profile=created.data;
   }
+  const safePublicName=maskEmailBasedName(profile.display_name,user.email);
+  if(safePublicName&&safePublicName!==profile.display_name){const maskedUpdate=await sb.from('sos_profiles').update({display_name:safePublicName,updated_at:new Date().toISOString()}).eq('user_id',user.id);if(maskedUpdate.error)throw maskedUpdate.error;profile.display_name=safePublicName;}
   accountState.id=String(profile.player_id||'').replace(/^#/,'').toUpperCase();
   accountState.coins=Number(profile.coins||0);accountState.diamonds=Number(profile.diamonds||0);accountState.regularVouchers=Number(profile.regular_vouchers||0);accountState.goldenVouchers=Number(profile.golden_vouchers||0);accountState.level=Number(profile.level||1);accountState.exp=Number(profile.exp||0);accountState.nickname=profile.display_name||accountState.nickname||'';
   await loadCloudInventory();
@@ -1759,10 +1763,10 @@ $('featureModalClose').onclick=closeFeatureModal;
 $('featureModal').addEventListener('click',e=>{if(e.target===$('featureModal'))closeFeatureModal()});
 function field(label,id,value='',type='text'){let w=document.createElement('div'),l=document.createElement('label'),i=document.createElement('input');l.textContent=label;i.id=id;i.value=value;i.type=type;w.append(l,i);return w}
 $('openProfile').onclick=()=>modal('PROFIL PEMAIN',b=>{
- b.append(field('Nama pemain','profileNickname',accountState.nickname||user?.user_metadata?.nickname||''));
+ b.append(field('Nama pemain','profileNickname',maskEmailBasedName(accountState.nickname||user?.user_metadata?.nickname||'',user?.email)||accountState.nickname||user?.user_metadata?.nickname||''));
  b.append(field('Tentang saya','profileBio',accountState.bio||''));
  let info=document.createElement('p');info.className='muted';info.textContent='ID: #'+accountState.id+' · Level '+(((user?.email||'').toLowerCase()===DEV_EMAIL)?'∞':accountState.level)+' (email tidak ditampilkan pada profil publik).';b.append(info);
- let save=document.createElement('button');save.textContent='SIMPAN PROFIL';save.onclick=async()=>{accountState.nickname=$('profileNickname').value.trim().slice(0,24);accountState.bio=$('profileBio').value.trim().slice(0,180);saveAccountState();if(sb&&user){const pr=await sb.from('sos_profiles').update({display_name:accountState.nickname,bio:accountState.bio,updated_at:new Date().toISOString()}).eq('user_id',user.id);if(pr.error)alert('Profil tersimpan lokal, tetapi gagal ke database: '+pr.error.message)}closeFeatureModal();$('accountStatus').textContent='Profil tersimpan.'};b.append(save)
+ let save=document.createElement('button');save.textContent='SIMPAN PROFIL';save.onclick=async()=>{const enteredName=$('profileNickname').value.trim().slice(0,24);accountState.nickname=maskEmailBasedName(enteredName,user?.email)||enteredName;accountState.bio=$('profileBio').value.trim().slice(0,180);saveAccountState();if(sb&&user){const pr=await sb.from('sos_profiles').update({display_name:accountState.nickname,bio:accountState.bio,updated_at:new Date().toISOString()}).eq('user_id',user.id);if(pr.error)alert('Profil tersimpan lokal, tetapi gagal ke database: '+pr.error.message)}closeFeatureModal();$('accountStatus').textContent='Profil tersimpan.'};b.append(save)
 });
 async function cloudFriends(){if(!sb||!user)return {friends:[],incoming:[],outgoing:[]};let r=await sb.rpc('sos_friend_list');if(r.error)throw r.error;return r.data||{friends:[],incoming:[],outgoing:[]}}
 $('openFriends').onclick=()=>modal('PERTEMANAN',b=>{renderFriendsPanel(b)});
