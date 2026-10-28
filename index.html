@@ -930,8 +930,12 @@ function announceRemoteRoomMove(previous,next){
  if(changedIndex>=0){
   if(!actorId||actorId===user?.id)return false;
   const actor=players.find(x=>x.user_id===actorId)||{nickname:'Pemain lain'};
-  board=newBoard.slice();size=next.board_size||size;
+  // Hitung SOS memakai papan terbaru tanpa mengganti papan global sebelum
+  // syncFromRoom membandingkan papan lama dan baru untuk memicu animasi.
+  const oldBoardRef=board,oldSize=size;
+  board=newBoard.slice();size=Number(next.board_size)||size;
   const foundCount=findSOS(changedIndex).length;
+  board=oldBoardRef;size=oldSize;
   const firstJustScored=foundCount>0&&!previous.first_sos_player_id&&next.first_sos_player_id===actorId;
   announceMoveEvent(isTeamRoom(next)?(playerTeam(actor)===playerTeam(players.find(x=>x.user_id===user?.id))?playerDisplayName(actor):'Musuhmu'):playerDisplayName(actor),newBoard[changedIndex],changedIndex,foundCount,firstJustScored);
   return true;
