@@ -836,7 +836,7 @@ function showSOSSpotlight(title,darkness,withShade=true,color=''){
  el.classList.remove('relic-k','relic-k-live','relic-rainbow');
  el.querySelector('.sos-phoenix-art')?.remove();
  if(isRelicK)el.classList.add('relic-k');
- else if(/relik|rainbow/i.test(String(title||'')))el.classList.add('relic-rainbow');
+ else if(/relik|rainbow|GOD\s*S\.O\.S|GOD SOS|KUADRAT/i.test(String(title||''))||(color&&color.startsWith('linear-gradient')))el.classList.add('relic-rainbow');
  el.classList.remove('active');
  el.style.setProperty('--sos-darkness',String(darkness||0));
  heading.textContent=isRelicK?'RELIK K':title;
@@ -871,11 +871,10 @@ function showSOSSpotlight(title,darkness,withShade=true,color=''){
 }
 let sosThemeResetTimer=null,sosLightningTimer=null,sosLightningLevel=0,sosLightningColors=['#65f4ff'];
 function sosThemePalette(color,title=''){
- if(/GOD\s*S\.O\.S|GOD SOS|S\.O\.S KUADRAT/i.test(title)||String(color).includes('linear-gradient'))return ['#ff4d6d','#ffb84d','#fff36b','#57f287','#48dfff','#8b7bff','#ff70d6'];
- const c=String(color||'').trim();
+ if(/GOD\s*S\.O\.S|GOD SOS|S\.O\.S KUADRAT|KUADRAT/i.test(title)||String(color).includes('linear-gradient'))return ['#52e8f2','#8b7bff','#ff70d6','#fff36b','#57f287'];
  const colors={
-  'S.O.S DELTA':['#282b9b','#4640d8','#7774ff'],
-  'S.O.S SPREE':['#a7ff45','#d4ff70','#73ff2f'],
+  'S.O.S DELTA':['#7b78ff','#5556e8','#3537b8'],
+  'S.O.S SPREE':['#52e8f2','#74f5ff','#32cfe6'],
   'MEGA S.O.S':['#63f59b','#38ffb0'],
   'ULTRA S.O.S':['#fff078','#ffe83b'],
   'DOMINATING S.O.S':['#ffae57','#ff7b37'],
@@ -886,38 +885,50 @@ function sosThemePalette(color,title=''){
   'S.O.S TRIPEL':['#ffb45e','#ff8738']
  };
  if(colors[title])return colors[title];
+ const c=String(color||'').trim();
  if(/^#[0-9a-f]{3,8}$/i.test(c))return [c];
  return [c||'#65f4ff'];
 }
+function sosThemeWord(title){
+ const t=String(title||'').toUpperCase();
+ if(t.includes('DELTA'))return 'DELTA';if(t.includes('SPREE'))return 'SPREE';
+ if(t.includes('GANDA'))return 'GANDA';if(t.includes('TRIPEL'))return 'TRIPEL';
+ if(t.includes('KUADRAT'))return 'KUADRAT';if(t.includes('GOD'))return 'GOD SOS';
+ if(t.includes('MEGA'))return 'MEGA';if(t.includes('ULTRA'))return 'ULTRA';
+ if(t.includes('DOMINATING'))return 'DOMINATING';if(t.includes('UNSTOPABEL'))return 'UNSTOPABEL';
+ if(t.includes('MONSTER'))return 'MONSTER';if(t.includes('RAMPAGE'))return 'RAMPAGE';
+ return t.replace(/^S\.O\.S\s*/, '').replace(/S\.O\.S/g,'SOS')||'SOS';
+}
 function createSosBolt(){
  const host=document.getElementById('sos-theme-lightning');if(!host||!host.classList.contains('active'))return;
- const bolt=document.createElement('div');bolt.className='bolt';bolt.style.left=(Math.random()*92)+'%';bolt.style.top=(Math.random()*82)+'%';bolt.style.setProperty('--bolt-color',sosLightningColors[Math.floor(Math.random()*sosLightningColors.length)]);
- const flip=Math.random()>.5?1:-1;bolt.style.transform='scaleX('+flip+')';
- const variants=[
-  'M52 0 L42 16 L55 23 L34 43 L47 48 L25 69 L37 72 L17 100',
-  'M43 0 L57 18 L43 29 L62 41 L39 57 L51 66 L29 83 L34 100',
-  'M56 0 L45 21 L61 31 L39 47 L49 58 L26 75 L38 82 L20 100'
- ];
- const d=variants[Math.floor(Math.random()*variants.length)];
- bolt.innerHTML='<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="'+d+'"/><path d="M43 18 L22 28 L29 39 L9 48"/><path d="M47 48 L70 55 L64 66 L87 76"/><path d="M37 72 L19 80 L12 91"/><path class="core" d="'+d+'"/><path class="core" d="M43 18 L22 28 L29 39 L9 48"/></svg>';
- host.appendChild(bolt);requestAnimationFrame(()=>bolt.classList.add('flash'));setTimeout(()=>bolt.remove(),760);
+ // Keep the overlay light: cap simultaneous text flashes and avoid SVG/filter-heavy lightning.
+ if(host.childElementCount>=3)return;
+ const word=document.createElement('div');word.className='sos-word-flash';word.textContent=sosThemeWord(host.dataset.title||'SOS');
+ const rainbow=host.dataset.rainbow==='1';
+ if(rainbow){word.classList.add('rainbow');word.style.setProperty('--word-color','#52e8f2')}
+ else word.style.setProperty('--word-color',sosLightningColors[Math.floor(Math.random()*sosLightningColors.length)]||'#52e8f2');
+ word.style.left=(5+Math.random()*70)+'%';word.style.top=(8+Math.random()*78)+'%';word.style.setProperty('--word-tilt',((Math.random()*18)-9)+'deg');
+ host.appendChild(word);requestAnimationFrame(()=>word.classList.add('show'));
+ setTimeout(()=>word.remove(),1050);
 }
 function setSosTheme(title,color,level=2){
  const body=document.body,host=document.getElementById('sos-theme-lightning');if(!host)return;
  sosLightningColors=sosThemePalette(color,title);sosLightningLevel=Math.max(2,Math.min(10,Number(level)||2));
+ const rainbow=/GOD\s*S\.O\.S|GOD SOS|KUADRAT/i.test(String(title))||String(color).includes('linear-gradient');
+ host.dataset.title=title||'SOS';host.dataset.rainbow=rainbow?'1':'0';
  body.classList.add('sos-neon-theme');body.style.setProperty('--sos-theme-color',sosLightningColors[0]);
- host.classList.add('active');host.style.background='radial-gradient(ellipse at 20% 15%, '+sosLightningColors[0]+'12, transparent 48%),radial-gradient(ellipse at 85% 80%, '+sosLightningColors[sosLightningColors.length-1]+'10, transparent 45%)';
+ host.classList.add('active');host.style.background='radial-gradient(ellipse at 20% 15%, '+sosLightningColors[0]+'10, transparent 48%),radial-gradient(ellipse at 85% 80%, '+sosLightningColors[sosLightningColors.length-1]+'08, transparent 45%)';
  if(sosLightningTimer)clearInterval(sosLightningTimer);
- const interval=Math.max(260,1700-(sosLightningLevel*135));
- sosLightningTimer=setInterval(()=>{createSosBolt();if(sosLightningLevel>=8&&Math.random()>.35)setTimeout(createSosBolt,100+Math.random()*240);if(sosLightningLevel>=10&&Math.random()>.2)setTimeout(createSosBolt,200+Math.random()*300)},interval);
- // Transition accents over five seconds; the board and buttons are never recolored.
+ // Higher combo/multiple levels spawn the title more frequently; no burst timers are used.
+ const interval=Math.max(720,2100-(sosLightningLevel*125));
+ sosLightningTimer=setInterval(createSosBolt,interval);
  body.style.setProperty('--sos-theme-transition','5000ms');
  if(sosThemeResetTimer)clearTimeout(sosThemeResetTimer);
 }
 function resetSosTheme(){
  if(sosThemeResetTimer)clearTimeout(sosThemeResetTimer);sosThemeResetTimer=null;
  if(sosLightningTimer)clearInterval(sosLightningTimer);sosLightningTimer=null;sosLightningLevel=0;
- const host=document.getElementById('sos-theme-lightning');if(host){host.classList.remove('active');host.replaceChildren();host.style.background='';}
+ const host=document.getElementById('sos-theme-lightning');if(host){host.classList.remove('active');host.replaceChildren();host.style.background='';host.removeAttribute('data-title');host.removeAttribute('data-rainbow');}
  document.body.classList.remove('sos-neon-theme');document.body.style.removeProperty('--sos-theme-color');document.body.style.removeProperty('--sos-theme-transition');
 }
 function queueSOSAnnouncements(events){announcementQueue=announcementQueue.then(async()=>{for(const event of events){$('announce').textContent=event.title;$('announceSub').textContent=event.sub;logEvent(event.title+' — '+event.sub);const hasSpotlight=!!event.banner||!!event.spotlight||!!event.darkness;if(hasSpotlight){const overlay=$('sosSpotlight');overlay?.classList.remove('relic-rainbow','relic-k');showSOSSpotlight(event.title,event.darkness||0,!!event.darkness,event.color||'')}const speech=Promise.resolve().then(()=>speakQueued(event.speech|| (event.title+'. '+event.sub))).catch(e=>console.warn('SOS voice-over failed',e));const timeout=new Promise(r=>setTimeout(r,hasSpotlight?5200:7000));await Promise.race([speech,timeout]);}}).catch(e=>console.warn('SOS announcement queue failed',e))}
@@ -2143,12 +2154,12 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
 /* SOS neon theme aura: only accents/panels change; board and buttons retain their original colors. */
 #sos-theme-lightning{position:fixed;inset:0;z-index:40;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .5s ease;}
 #sos-theme-lightning.active{opacity:1}
-#sos-theme-lightning .bolt{position:absolute;width:clamp(90px,24vw,280px);height:clamp(150px,38vh,390px);opacity:0;mix-blend-mode:screen;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 9px var(--bolt-color)) drop-shadow(0 0 24px var(--bolt-color)) drop-shadow(0 0 42px var(--bolt-color));}
-#sos-theme-lightning .bolt svg{width:100%;height:100%;overflow:visible}
-#sos-theme-lightning .bolt path{fill:none;stroke:var(--bolt-color);stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
-#sos-theme-lightning .bolt path.core{stroke:#fff;stroke-width:1.1;opacity:.98}
-#sos-theme-lightning .bolt.flash{animation:sosBoltFlash .68s ease-out both}
-@keyframes sosBoltFlash{0%{opacity:0;transform:scale(.72) rotate(-8deg);filter:brightness(1)}8%{opacity:1;filter:brightness(3.5)}19%{opacity:.2}31%{opacity:1;filter:brightness(2.5)}47%{opacity:.55}58%{opacity:.98;filter:brightness(3)}100%{opacity:0;transform:scale(1.15) rotate(5deg);filter:brightness(1)}}
+#sos-theme-lightning .sos-word-flash{position:absolute;max-width:90vw;white-space:nowrap;font-size:clamp(20px,6vw,48px);font-weight:1000;letter-spacing:.09em;line-height:1;color:var(--word-color,#52e8f2);-webkit-text-stroke:.35px #fff8;text-shadow:0 0 4px #fff,0 0 10px var(--word-color),0 0 22px var(--word-color);opacity:0;transform:translateY(8px) rotate(var(--word-tilt,0deg)) scale(.88);will-change:transform,opacity;contain:layout style;}
+#sos-theme-lightning .sos-word-flash.show{animation:sosWordFlash 1.02s ease-out both}
+#sos-theme-lightning .sos-word-flash.rainbow{color:transparent;background:linear-gradient(90deg,#52e8f2,#8b7bff,#ff70d6,#fff36b,#57f287,#52e8f2);background-size:220% auto;background-clip:text;-webkit-background-clip:text;text-shadow:0 0 8px #52e8f288;animation:sosWordRainbow 1.02s ease-out both;}
+@keyframes sosWordFlash{0%{opacity:0;transform:translateY(8px) rotate(var(--word-tilt,0deg)) scale(.88)}14%{opacity:1;transform:translateY(0) rotate(var(--word-tilt,0deg)) scale(1)}58%{opacity:.92;transform:translateY(-2px) rotate(var(--word-tilt,0deg)) scale(1.04)}100%{opacity:0;transform:translateY(-8px) rotate(var(--word-tilt,0deg)) scale(1.08)}}
+@keyframes sosWordRainbow{0%{opacity:0;transform:translateY(8px) scale(.88);background-position:0 center}14%{opacity:1;transform:translateY(0) scale(1);background-position:35% center}58%{opacity:.92;transform:translateY(-2px) scale(1.04);background-position:75% center}100%{opacity:0;transform:translateY(-8px) scale(1.08);background-position:100% center}}
+@media(prefers-reduced-motion:reduce){#sos-theme-lightning .sos-word-flash.show{animation-duration:.25s!important}}
 body.sos-neon-theme #gameScreen .panel{border-color:color-mix(in srgb,var(--sos-theme-color) 58%,transparent);box-shadow:0 10px 28px #0005,0 0 24px color-mix(in srgb,var(--sos-theme-color) 22%,transparent),inset 0 0 18px color-mix(in srgb,var(--sos-theme-color) 6%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
 body.sos-neon-theme #gameScreen .topline{border-color:color-mix(in srgb,var(--sos-theme-color) 60%,transparent);background:linear-gradient(110deg,color-mix(in srgb,var(--sos-theme-color) 9%,transparent),#b57bff10,color-mix(in srgb,var(--sos-theme-color) 7%,transparent));box-shadow:inset 0 0 24px color-mix(in srgb,var(--sos-theme-color) 12%,transparent),0 0 22px color-mix(in srgb,var(--sos-theme-color) 20%,transparent);transition:border-color 5s ease,background 5s ease,box-shadow 5s ease;}
 body.sos-neon-theme #gameScreen #announce,body.sos-neon-theme #gameScreen .eyebrow{color:var(--sos-theme-color)!important;text-shadow:0 0 7px color-mix(in srgb,var(--sos-theme-color) 90%,transparent),0 0 18px color-mix(in srgb,var(--sos-theme-color) 70%,transparent);transition:color 5s ease,text-shadow 5s ease;}
