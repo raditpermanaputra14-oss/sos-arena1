@@ -921,11 +921,13 @@ function setSosTheme(title,color,level=2){
  body.classList.add('sos-neon-theme');body.style.setProperty('--sos-theme-color',sosLightningColors[0]);
  host.classList.add('active');host.style.background='radial-gradient(ellipse at 20% 15%, '+sosLightningColors[0]+'10, transparent 48%),radial-gradient(ellipse at 85% 80%, '+sosLightningColors[sosLightningColors.length-1]+'08, transparent 45%)';
  if(sosLightningTimer)clearInterval(sosLightningTimer);
- // Higher combo/multiple levels spawn the title more frequently; no burst timers are used.
- const interval=Math.max(980,2400-(sosLightningLevel*125));
+ // Keep the animated title effect, but avoid rapid DOM creation on low-end phones.
+ const interval=Math.max(1800,3200-(sosLightningLevel*100));
  sosLightningTimer=setInterval(createSosBolt,interval);
  body.style.setProperty('--sos-theme-transition','5000ms');
  if(sosThemeResetTimer)clearTimeout(sosThemeResetTimer);
+ // Previously the lightning interval could run indefinitely during a streak.
+ sosThemeResetTimer=setTimeout(resetSosTheme,6200);
 }
 function resetSosTheme(){
  if(sosThemeResetTimer)clearTimeout(sosThemeResetTimer);sosThemeResetTimer=null;
@@ -933,7 +935,22 @@ function resetSosTheme(){
  const host=document.getElementById('sos-theme-lightning');if(host){host.classList.remove('active');host.replaceChildren();host.style.background='';host.removeAttribute('data-title');host.removeAttribute('data-rainbow');}
  document.body.classList.remove('sos-neon-theme');document.body.style.removeProperty('--sos-theme-color');document.body.style.removeProperty('--sos-theme-transition');
 }
-function queueSOSAnnouncements(events){announcementQueue=announcementQueue.then(async()=>{for(const event of events){$('announce').textContent=event.title;$('announceSub').textContent=event.sub;logEvent(event.title+' — '+event.sub);const hasSpotlight=!!event.banner||!!event.spotlight||!!event.darkness;if(hasSpotlight){const overlay=$('sosSpotlight');overlay?.classList.remove('relic-rainbow','relic-k');showSOSSpotlight(event.title,event.darkness||0,!!event.darkness,event.color||'')}const speech=Promise.resolve().then(()=>speakQueued(event.speech|| (event.title+'. '+event.sub))).catch(e=>console.warn('SOS voice-over failed',e));const timeout=new Promise(r=>setTimeout(r,hasSpotlight?5200:7000));await Promise.race([speech,timeout]);}}).catch(e=>console.warn('SOS announcement queue failed',e))}
+function queueSOSAnnouncements(events){
+ if(!Array.isArray(events)||!events.length)return;
+ announcementQueue=announcementQueue.then(async()=>{
+  // Keep every event in the log, but combine same-move announcements into one cinematic.
+  // This prevents a multiple + combo move from stacking two full-screen animations and voices.
+  const primary=[...events].reverse().find(e=>!!(e.banner||e.spotlight||e.darkness))||events[events.length-1];
+  for(const event of events){logEvent(event.title+' — '+event.sub)}
+  $('announce').textContent=primary.title;$('announceSub').textContent=events.map(e=>e.sub).join(' ');
+  const hasSpotlight=events.some(e=>!!(e.banner||e.spotlight||e.darkness));
+  if(hasSpotlight){const overlay=$('sosSpotlight');overlay?.classList.remove('relic-rainbow','relic-k');showSOSSpotlight(primary.title,primary.darkness||0,!!primary.darkness,primary.color||'')}
+  const speechText=events.map(e=>e.speech||e.title+'. '+e.sub).join('. ');
+  const speech=Promise.resolve().then(()=>speakQueued(speechText)).catch(e=>console.warn('SOS voice-over failed',e));
+  const timeout=new Promise(r=>setTimeout(r,hasSpotlight?5200:7000));
+  await Promise.race([speech,timeout]);
+ }).catch(e=>console.warn('SOS announcement queue failed',e))
+}
 function announceMoveEvent(name,letter,index,foundCount=0,isFirstOverride=null){
  const cell=index+1,letterName=LETTER_NAMES[letter]||letter,place='petak nomor '+cell,events=[];
  if(foundCount===0){resetSosTheme();events.push({title:'LANGKAH PEMAIN',sub:name+' menulis huruf '+letterName+' di '+place+'.'});combo=0;queueSOSAnnouncements(events);return}
@@ -2191,6 +2208,21 @@ body.sos-neon-theme #gameScreen #announce,body.sos-neon-theme #gameScreen .eyebr
 body.sos-neon-theme #gameScreen .scorebar .player,body.sos-neon-theme #gameScreen .score,body.sos-neon-theme #gameScreen .pill{box-shadow:0 0 8px color-mix(in srgb,var(--sos-theme-color) 10%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
 @media(max-width:600px){#sos-theme-lightning .sos-word-flash{font-size:clamp(18px,5.5vw,34px);letter-spacing:.05em;text-shadow:0 0 4px #fff,0 0 9px var(--word-color);}}
 /* Papan, petak huruf, dan tombol sengaja tidak diberi filter/warna tema. */
+
+/* Performance tuning: keep SOS visuals animated while reducing expensive repaint work on mobile. */
+#sos-theme-lightning{contain:strict;}
+#sos-theme-lightning .sos-word-flash{filter:none!important;text-shadow:0 0 4px #fff,0 0 8px var(--word-color)!important;will-change:transform,opacity;}
+#sos-theme-lightning .sos-word-flash.rainbow{filter:none!important;text-shadow:0 0 5px #52e8f288!important;}
+body.sos-neon-theme #gameScreen .panel,
+body.sos-neon-theme #gameScreen .topline,
+body.sos-neon-theme #gameScreen .scorebar .player,
+body.sos-neon-theme #gameScreen .score,
+body.sos-neon-theme #gameScreen .pill{box-shadow:0 0 8px color-mix(in srgb,var(--sos-theme-color) 10%,transparent)!important;}
+body.sos-neon-theme #gameScreen #announce,
+body.sos-neon-theme #gameScreen .eyebrow{text-shadow:0 0 5px color-mix(in srgb,var(--sos-theme-color) 55%,transparent)!important;}
+.sos-success-shadow{text-shadow:0 0 4px #fff,0 0 10px currentColor!important;}
+.sos-success-shadow span{-webkit-text-stroke:.5px rgba(255,255,255,.75)!important;}
+@media(prefers-reduced-motion:reduce){#sos-theme-lightning .sos-word-flash.show{animation-duration:.25s!important}}
 </style>
 <script>
 (function(){
