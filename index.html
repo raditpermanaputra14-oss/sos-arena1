@@ -893,9 +893,14 @@ function createSosBolt(){
  const host=document.getElementById('sos-theme-lightning');if(!host||!host.classList.contains('active'))return;
  const bolt=document.createElement('div');bolt.className='bolt';bolt.style.left=(Math.random()*92)+'%';bolt.style.top=(Math.random()*82)+'%';bolt.style.setProperty('--bolt-color',sosLightningColors[Math.floor(Math.random()*sosLightningColors.length)]);
  const flip=Math.random()>.5?1:-1;bolt.style.transform='scaleX('+flip+')';
- const d=Math.random()>.5?'M50 0 L38 24 L54 33 L28 63 L43 66 L18 100':'M52 0 L66 19 L49 35 L70 48 L39 76 L46 100';
- bolt.innerHTML='<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="'+d+'"/><path d="M52 20 L74 37 L61 47"/></svg>';
- host.appendChild(bolt);requestAnimationFrame(()=>bolt.classList.add('flash'));setTimeout(()=>bolt.remove(),520);
+ const variants=[
+  'M52 0 L42 16 L55 23 L34 43 L47 48 L25 69 L37 72 L17 100',
+  'M43 0 L57 18 L43 29 L62 41 L39 57 L51 66 L29 83 L34 100',
+  'M56 0 L45 21 L61 31 L39 47 L49 58 L26 75 L38 82 L20 100'
+ ];
+ const d=variants[Math.floor(Math.random()*variants.length)];
+ bolt.innerHTML='<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="'+d+'"/><path d="M43 18 L22 28 L29 39 L9 48"/><path d="M47 48 L70 55 L64 66 L87 76"/><path d="M37 72 L19 80 L12 91"/><path class="core" d="'+d+'"/><path class="core" d="M43 18 L22 28 L29 39 L9 48"/></svg>';
+ host.appendChild(bolt);requestAnimationFrame(()=>bolt.classList.add('flash'));setTimeout(()=>bolt.remove(),760);
 }
 function setSosTheme(title,color,level=2){
  const body=document.body,host=document.getElementById('sos-theme-lightning');if(!host)return;
@@ -2138,16 +2143,19 @@ document.addEventListener('DOMContentLoaded',()=>{const modal=document.getElemen
 /* SOS neon theme aura: only accents/panels change; board and buttons retain their original colors. */
 #sos-theme-lightning{position:fixed;inset:0;z-index:40;pointer-events:none;overflow:hidden;opacity:0;transition:opacity .5s ease;}
 #sos-theme-lightning.active{opacity:1}
-#sos-theme-lightning .bolt{position:absolute;width:clamp(70px,18vw,210px);height:clamp(110px,28vh,300px);opacity:0;filter:drop-shadow(0 0 5px var(--bolt-color)) drop-shadow(0 0 15px var(--bolt-color));}
+#sos-theme-lightning .bolt{position:absolute;width:clamp(90px,24vw,280px);height:clamp(150px,38vh,390px);opacity:0;mix-blend-mode:screen;filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 9px var(--bolt-color)) drop-shadow(0 0 24px var(--bolt-color)) drop-shadow(0 0 42px var(--bolt-color));}
 #sos-theme-lightning .bolt svg{width:100%;height:100%;overflow:visible}
-#sos-theme-lightning .bolt path{fill:none;stroke:var(--bolt-color);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-#sos-theme-lightning .bolt.flash{animation:sosBoltFlash .42s ease-out both}
-@keyframes sosBoltFlash{0%{opacity:0;transform:scale(.72) rotate(-8deg)}12%{opacity:1}35%{opacity:.2}52%{opacity:.95}100%{opacity:0;transform:scale(1.12) rotate(5deg)}}
-body.sos-neon-theme #gameScreen .panel{border-color:color-mix(in srgb,var(--sos-theme-color) 52%,transparent);box-shadow:0 10px 28px #0005,0 0 20px color-mix(in srgb,var(--sos-theme-color) 13%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
-body.sos-neon-theme #gameScreen .topline{border-color:color-mix(in srgb,var(--sos-theme-color) 45%,transparent);box-shadow:0 0 18px color-mix(in srgb,var(--sos-theme-color) 12%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
-body.sos-neon-theme #gameScreen #announce,body.sos-neon-theme #gameScreen .eyebrow{color:var(--sos-theme-color)!important;text-shadow:0 0 12px color-mix(in srgb,var(--sos-theme-color) 70%,transparent);transition:color 5s ease,text-shadow 5s ease;}
-body.sos-neon-theme #gameScreen .scorebar .player{border-color:color-mix(in srgb,var(--sos-theme-color) 38%,transparent);transition:border-color 5s ease;}
-body.sos-neon-theme #gameScreen .board,body.sos-neon-theme #gameScreen .board button,body.sos-neon-theme #gameScreen button{ /* deliberately keep board and button visuals unchanged */ }
+#sos-theme-lightning .bolt path{fill:none;stroke:var(--bolt-color);stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+#sos-theme-lightning .bolt path.core{stroke:#fff;stroke-width:1.1;opacity:.98}
+#sos-theme-lightning .bolt.flash{animation:sosBoltFlash .68s ease-out both}
+@keyframes sosBoltFlash{0%{opacity:0;transform:scale(.72) rotate(-8deg);filter:brightness(1)}8%{opacity:1;filter:brightness(3.5)}19%{opacity:.2}31%{opacity:1;filter:brightness(2.5)}47%{opacity:.55}58%{opacity:.98;filter:brightness(3)}100%{opacity:0;transform:scale(1.15) rotate(5deg);filter:brightness(1)}}
+body.sos-neon-theme #gameScreen .panel{border-color:color-mix(in srgb,var(--sos-theme-color) 58%,transparent);box-shadow:0 10px 28px #0005,0 0 24px color-mix(in srgb,var(--sos-theme-color) 22%,transparent),inset 0 0 18px color-mix(in srgb,var(--sos-theme-color) 6%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
+body.sos-neon-theme #gameScreen .topline{border-color:color-mix(in srgb,var(--sos-theme-color) 60%,transparent);background:linear-gradient(110deg,color-mix(in srgb,var(--sos-theme-color) 9%,transparent),#b57bff10,color-mix(in srgb,var(--sos-theme-color) 7%,transparent));box-shadow:inset 0 0 24px color-mix(in srgb,var(--sos-theme-color) 12%,transparent),0 0 22px color-mix(in srgb,var(--sos-theme-color) 20%,transparent);transition:border-color 5s ease,background 5s ease,box-shadow 5s ease;}
+body.sos-neon-theme #gameScreen #announce,body.sos-neon-theme #gameScreen .eyebrow{color:var(--sos-theme-color)!important;text-shadow:0 0 7px color-mix(in srgb,var(--sos-theme-color) 90%,transparent),0 0 18px color-mix(in srgb,var(--sos-theme-color) 70%,transparent);transition:color 5s ease,text-shadow 5s ease;}
+body.sos-neon-theme #gameScreen .scorebar .player{border-color:color-mix(in srgb,var(--sos-theme-color) 55%,transparent);box-shadow:0 0 14px color-mix(in srgb,var(--sos-theme-color) 12%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
+body.sos-neon-theme #gameScreen .score,body.sos-neon-theme #gameScreen .pill{border-color:color-mix(in srgb,var(--sos-theme-color) 48%,transparent);box-shadow:0 0 16px color-mix(in srgb,var(--sos-theme-color) 12%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
+body.sos-neon-theme #gameScreen .panel:before{background:linear-gradient(90deg,transparent,var(--sos-theme-color),#fff,var(--sos-theme-color),transparent);transition:background 5s ease;}
+/* Papan, petak huruf, dan tombol sengaja tidak diberi filter/warna tema. */
 </style>
 <script>
 (function(){
