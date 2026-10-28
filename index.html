@@ -663,7 +663,7 @@ body.woman-theme #lobbyWelcome #lobbyQuoteBottom{color:var(--a,#ff8dc7)!importan
 <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24"><path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 17V7A1.5 1.5 0 0 1 4 5.5Z"></path><path d="m3 7 9 7 9-7"></path></svg>
 <span aria-label="Ada pesan belum dibaca" id="lobbyInboxBadge"></span>
 </button>
-<div id="lobbyQuoteTop" aria-live="polite"></div><div class="welcome-kicker">SELAMAT DATANG DI</div><h1>ARENA SOS</h1><div id="lobbyQuoteBottom" aria-live="polite"></div><div class="welcome-email" id="lobbyWelcomeEmail">—</div><div class="welcome-credit">created by AEC</div></div>
+<div id="lobbyQuoteTop" aria-live="polite"></div><div class="welcome-kicker">SELAMAT DATANG DI</div><h1>ARENA SOS</h1><div id="lobbyQuoteBottom" aria-live="polite"></div><div class="welcome-email" id="lobbyWelcomeEmail">—</div><div class="welcome-credit">AEC</div></div>
 <div id="lobbyFeatures"><div aria-label="EXP dan saldo akun" id="lobbyCurrencyHud">
 <div class="currency-chip exp-chip" id="lobbyExpChip"><span class="exp-label">LV <b id="lobbyExpLevel">1</b></span><span class="exp-progress-track"><span id="lobbyExpBar"></span></span><span class="exp-value" id="lobbyExpText">0/1 EXP</span></div>
 <div class="currency-chip coins"><span class="currency-icon">🪙</span><span class="currency-value" id="lobbyCoinBalance">0</span></div>
@@ -1413,8 +1413,15 @@ $('chooseO').onclick=()=>{chosen='O';updateTurnUI();$('gameHint').textContent='H
 function renderBoard(){let b=$('board');b.style.setProperty('--board-size',size);b.style.gridTemplateColumns=`repeat(${size},minmax(0,1fr))`;b.style.gridTemplateRows=`repeat(${size},minmax(0,1fr))`;b.style.width='100%';b.style.height='100%';b.innerHTML='';$('lines').innerHTML='';board=board||Array(size*size).fill(null);for(let i=0;i<size*size;i++){let btn=document.createElement('button');btn.className='cell'+(board[i]?' '+board[i].toLowerCase():'');btn.dataset.filled=board[i]?'1':'';if(board[i]){btn.textContent=board[i]}else{let number=document.createElement('span');number.className='cell-number';number.textContent=String(i+1);btn.append(number)}btn.setAttribute('aria-label','Petak nomor '+(i+1)+(board[i]?' berisi '+board[i]:''));btn.onclick=()=>makeMove(i);b.append(btn)}drawLines();updateTurnUI()}
 function renderScores(){$('scorebar').innerHTML='';if(mode==='online'&&isTeamRoom()){for(const side of ['S','O']){const d=document.createElement('div');d.className='score';const name=document.createElement('span');name.textContent='TIM '+side;name.style.color=side==='S'?'#65e4ff':'#ff8bc8';const score=document.createElement('strong');score.textContent=Number(scores[teamScoreKey(side)]||0);d.append(name,score);$('scorebar').append(d)}return}players.forEach(p=>{let id=mode==='online'?p.user_id:p.id;let d=document.createElement('div');d.className='score';let name=document.createElement('span');name.textContent=p.user_id===user?.id?'Kamu':p.nickname;let score=document.createElement('strong');score.textContent=scores[id]||0;d.append(name,score);$('scorebar').append(d)})}
 function findSOS(i){let r=Math.floor(i/size),c=i%size,found=[];const dirs=[[0,1],[1,0],[1,1],[1,-1]];for(let [dr,dc] of dirs){for(let start=-2;start<=0;start++){let coords=[0,1,2].map(k=>[r+(start+k)*dr,c+(start+k)*dc]);if(coords.some(([rr,cc])=>rr<0||cc<0||rr>=size||cc>=size))continue;if(!coords.some(([rr,cc])=>rr===r&&cc===c))continue;let vals=coords.map(([rr,cc])=>board[rr*size+cc]);if(vals.join('')==='SOS')found.push(coords.map(([rr,cc])=>rr*size+cc))}}return found}
-function showSOSShadows(found=[]){
+function showSOSShadows(found=[],actor=null){
  if(!found.length)return;
+ const actorId=mode==='online'?(actor?.user_id||actor?.id):(actor?.id||null);
+ const isMine=!!actorId && (mode==='online'?actorId===user?.id:actorId==='local-0');
+ let effectColor='var(--a,#65f4ff)';
+ if(mode==='online'&&isTeamRoom()){
+   if(isMine) effectColor='#35e878';
+   else effectColor=playerTeam(actor)==='S'?'#65e4ff':'#ff4f9a';
+ } else if(!isMine){ effectColor='rgba(255,255,255,.48)'; }
  const wrap=document.querySelector('.board-wrap'),grid=$('board');
  if(!wrap||!grid)return;
  const wrapRect=wrap.getBoundingClientRect();
@@ -1429,6 +1436,9 @@ function showSOSShadows(found=[]){
   const shadow=document.createElement('div');
   shadow.className='sos-success-shadow';
   shadow.setAttribute('aria-hidden','true');
+  shadow.style.color=effectColor;
+  shadow.style.setProperty('--a',effectColor);
+  if(!isMine && !(mode==='online'&&isTeamRoom())) shadow.style.textShadow='0 0 3px rgba(255,255,255,.28),0 0 8px rgba(255,255,255,.16)';
   ['S','O','S'].forEach((ch,i)=>{
    const rect=rects[i],span=document.createElement('span');
    span.textContent=ch;
@@ -1482,7 +1492,7 @@ async function submitOnlineMove(i,p){
   if(patch.error)throw new Error('Langkah tersimpan, tetapi efek relik gagal disimpan: '+patch.error.message);
   room={...room,...nextRoomPatch};syncFromRoom(room);
   announceMoveEvent('Kamu',letter,i,found.length,found.length>0&&wasFirst);
-  drawLines(found);showSOSShadows(found);
+  drawLines(found);showSOSShadows(found,p);
   if(room.status==='finished')finishGame();
   else updateTurnUI();
  }catch(e){
@@ -1510,7 +1520,7 @@ if(mode==='online'){
  if(!found.length&&window.sosSkipRelic&&order[next]===window.sosSkipRelic.targetId){if(window.sosSkipRelic.level===2){const skipKey=(isTeamRoom()?teamScoreKey(playerTeam(players.find(x=>x.user_id===window.sosSkipRelic.targetId))):window.sosSkipRelic.targetId);scores[skipKey]=(scores[skipKey]||0)-1;}next=(next+1)%order.length;window.sosSkipRelic=null;window.sosRelicActive=null;room.relic_state=null;}
  let sharedRelic=window.sosRelicActive?{...window.sosRelicActive}:window.sosCardBonus?{type:'bonus',owner:user.id,itemId:window.sosCardBonus.itemId,remaining:1}:window.sosSkipRelic?{type:'skip',level:window.sosSkipRelic.level,targetId:window.sosSkipRelic.targetId,owner:user.id,remaining:1}:null;
  let nextRoom={board,scores,current_turn:next,turn_started_at:new Date().toISOString(),status:board.every(Boolean)?'finished':'playing',result_reason:board.every(Boolean)?(isTeamRoom()?(Number(scores.TEAM_S)===Number(scores.TEAM_O)?'team_draw':'team_score'):'board_full'):(room?.result_reason||null),relic_state:sharedRelic,first_sos_player_id:room?.first_sos_player_id||(found.length?pid:null)};let res=await sb.from('sos_rooms').update(nextRoom).eq('id',roomId).eq('status','playing').eq('turn_started_at',room?.turn_started_at||'');if(res.error){alert('Gagal menyimpan langkah: '+res.error.message);board[i]=null;moveLock=false;return}room={...room,...nextRoom};window.sosRelicActive=sharedRelic&&['combo','multiple','steal','bonus','tactic','relic-k'].includes(sharedRelic.type)?sharedRelic:null;window.sosSkipRelic=sharedRelic?.type==='skip'?{level:sharedRelic.level,targetId:sharedRelic.targetId}:null;currentTurn=next}else if(!found.length)currentTurn=(currentTurn+1)%players.length;
-renderBoard();renderScores();drawLines(found);showSOSShadows(found);moveLock=false;if(board.every(Boolean)){finishGame();if(mode==='online')await sb.from('sos_rooms').update({status:'finished'}).eq('id',roomId)}else updateTurnUI()}
+renderBoard();renderScores();drawLines(found);showSOSShadows(found,p);moveLock=false;if(board.every(Boolean)){finishGame();if(mode==='online')await sb.from('sos_rooms').update({status:'finished'}).eq('id',roomId)}else updateTurnUI()}
 function drawLines(newLines=[]){$('lines').innerHTML='';let ns='http://www.w3.org/2000/svg';let lines=[];for(let i=0;i<board.length;i++)if(board[i]==='S'){let f=findSOS(i);f.forEach(line=>{let key=line.slice().sort((a,b)=>a-b).join(',');if(!lines.some(x=>x.key===key))lines.push({key,line})})}lines.forEach(({line})=>{let a=line[0],c=line[2],r1=Math.floor(a/size),c1=a%size,r2=Math.floor(c/size),c2=c%size;let x1=(c1+.5)*100/size,y1=(r1+.5)*100/size,x2=(c2+.5)*100/size,y2=(r2+.5)*100/size;let el=document.createElementNS(ns,'line');Object.entries({x1,y1,x2,y2}).forEach(([k,v])=>el.setAttribute(k,v));el.setAttribute('class','sosline');$('lines').append(el)})}
 function clearResultTimers(){resultTimers.forEach(id=>clearTimeout(id));resultTimers=[]}
 function buildResultLetters(title){const target=$('gameResultTitle');target.innerHTML='';const directions=[[-110,0],[0,110],[110,0],[0,110],[-110,0],[0,-110],[110,0],[0,-110]];const clean=title.replace(/!/g,'');const interval=clean.length>1?7.05/(clean.length-1):0;for(let i=0;i<clean.length;i++){const span=document.createElement('span');span.className='result-letter';span.textContent=clean[i];const [x,y]=directions[i%directions.length];span.style.setProperty('--from-x',x+'vw');span.style.setProperty('--from-y',y+'vh');span.style.setProperty('--letter-delay',(2+i*interval)+'s');target.append(span)}target.setAttribute('aria-label',clean)}
