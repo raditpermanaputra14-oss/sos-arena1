@@ -379,7 +379,7 @@ body.woman-theme .leaderboard-lobby-btn{border-color:#ff78bd99!important;backgro
 /* Bayangan SOS: setiap huruf dikunci tepat di tengah petaknya */
 .board-wrap{position:relative}
 .sos-success-shadow{position:absolute;inset:0;z-index:8;pointer-events:none;color:var(--a,#65f4ff);font-weight:1000;line-height:1;text-shadow:0 0 5px #fff,0 0 14px currentColor,0 0 28px currentColor}
-.sos-success-shadow span{position:absolute;display:flex;align-items:center;justify-content:center;box-sizing:border-box;font-size:clamp(22px,6vw,48px);-webkit-text-stroke:1px rgba(255,255,255,.85);animation:sos-shadow-exit 1.2s ease-in forwards;animation-delay:1.8s;transform-origin:center center}
+.sos-success-shadow span{position:absolute;display:flex;align-items:center;justify-content:center;box-sizing:border-box;font-size:clamp(22px,6vw,48px);-webkit-text-stroke:1px rgba(255,255,255,.85);transform:translate(-50%,-50%) rotate(var(--sos-angle,0deg)) scale(1);animation:sos-shadow-exit 1.2s ease-in 1.8s both;transform-origin:center center}
 @keyframes sos-shadow-exit{0%{opacity:1;transform:translate(-50%,-50%) rotate(var(--sos-angle,0deg)) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--sos-angle,0deg)) scale(1.65)}}
 
 </style>
