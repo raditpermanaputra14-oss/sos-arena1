@@ -902,14 +902,14 @@ function sosThemeWord(title){
 function createSosBolt(){
  const host=document.getElementById('sos-theme-lightning');if(!host||!host.classList.contains('active'))return;
  // Keep the overlay light: cap simultaneous text flashes and avoid SVG/filter-heavy lightning.
- if(host.childElementCount>=3)return;
+ if(host.childElementCount>=2)return;
  const word=document.createElement('div');word.className='sos-word-flash';word.textContent=sosThemeWord(host.dataset.title||'SOS');
  const rainbow=host.dataset.rainbow==='1';
  if(rainbow){word.classList.add('rainbow');word.style.setProperty('--word-color','#52e8f2')}
  else word.style.setProperty('--word-color',sosLightningColors[Math.floor(Math.random()*sosLightningColors.length)]||'#52e8f2');
  word.style.left=(5+Math.random()*70)+'%';word.style.top=(8+Math.random()*78)+'%';word.style.setProperty('--word-tilt',((Math.random()*18)-9)+'deg');
  host.appendChild(word);requestAnimationFrame(()=>word.classList.add('show'));
- setTimeout(()=>word.remove(),1050);
+ word.addEventListener('animationend',()=>word.remove(),{once:true});setTimeout(()=>{if(word.isConnected)word.remove()},1200);
 }
 function setSosTheme(title,color,level=2){
  const body=document.body,host=document.getElementById('sos-theme-lightning');if(!host)return;
@@ -920,7 +920,7 @@ function setSosTheme(title,color,level=2){
  host.classList.add('active');host.style.background='radial-gradient(ellipse at 20% 15%, '+sosLightningColors[0]+'10, transparent 48%),radial-gradient(ellipse at 85% 80%, '+sosLightningColors[sosLightningColors.length-1]+'08, transparent 45%)';
  if(sosLightningTimer)clearInterval(sosLightningTimer);
  // Higher combo/multiple levels spawn the title more frequently; no burst timers are used.
- const interval=Math.max(720,2100-(sosLightningLevel*125));
+ const interval=Math.max(980,2400-(sosLightningLevel*125));
  sosLightningTimer=setInterval(createSosBolt,interval);
  body.style.setProperty('--sos-theme-transition','5000ms');
  if(sosThemeResetTimer)clearTimeout(sosThemeResetTimer);
@@ -2166,6 +2166,15 @@ body.sos-neon-theme #gameScreen #announce,body.sos-neon-theme #gameScreen .eyebr
 body.sos-neon-theme #gameScreen .scorebar .player{border-color:color-mix(in srgb,var(--sos-theme-color) 55%,transparent);box-shadow:0 0 14px color-mix(in srgb,var(--sos-theme-color) 12%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
 body.sos-neon-theme #gameScreen .score,body.sos-neon-theme #gameScreen .pill{border-color:color-mix(in srgb,var(--sos-theme-color) 48%,transparent);box-shadow:0 0 16px color-mix(in srgb,var(--sos-theme-color) 12%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
 body.sos-neon-theme #gameScreen .panel:before{background:linear-gradient(90deg,transparent,var(--sos-theme-color),#fff,var(--sos-theme-color),transparent);transition:background 5s ease;}
+/* SOS Arena performance tune: keep every visual effect, reduce expensive glow/compositing on mobile. */
+#sos-theme-lightning{isolation:isolate;contain:layout paint style;background-color:transparent!important;}
+#sos-theme-lightning .sos-word-flash{contain:layout paint style;text-shadow:0 0 5px #fff,0 0 13px var(--word-color);-webkit-text-stroke:.25px #fff7;will-change:transform,opacity;}
+#sos-theme-lightning .sos-word-flash.rainbow{text-shadow:0 0 6px #52e8f288;}
+body.sos-neon-theme #gameScreen .panel{box-shadow:0 8px 18px #0004,0 0 12px color-mix(in srgb,var(--sos-theme-color) 14%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
+body.sos-neon-theme #gameScreen .topline{box-shadow:inset 0 0 12px color-mix(in srgb,var(--sos-theme-color) 8%,transparent),0 0 12px color-mix(in srgb,var(--sos-theme-color) 12%,transparent);transition:border-color 5s ease,background 5s ease,box-shadow 5s ease;}
+body.sos-neon-theme #gameScreen #announce,body.sos-neon-theme #gameScreen .eyebrow{text-shadow:0 0 5px color-mix(in srgb,var(--sos-theme-color) 75%,transparent),0 0 10px color-mix(in srgb,var(--sos-theme-color) 48%,transparent);transition:color 5s ease,text-shadow 5s ease;}
+body.sos-neon-theme #gameScreen .scorebar .player,body.sos-neon-theme #gameScreen .score,body.sos-neon-theme #gameScreen .pill{box-shadow:0 0 8px color-mix(in srgb,var(--sos-theme-color) 10%,transparent);transition:border-color 5s ease,box-shadow 5s ease;}
+@media(max-width:600px){#sos-theme-lightning .sos-word-flash{font-size:clamp(18px,5.5vw,34px);letter-spacing:.05em;text-shadow:0 0 4px #fff,0 0 9px var(--word-color);}}
 /* Papan, petak huruf, dan tombol sengaja tidak diberi filter/warna tema. */
 </style>
 <script>
