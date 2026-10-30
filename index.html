@@ -2422,3 +2422,40 @@ const body=el('featureModalBody');if(body){const obs=new MutationObserver(()=>{i
 </script>
 </body></html>
 <!-- v18: tombol Wewenang Developer disembunyikan paksa untuk akun non-developer; akun developer tetap dapat melihatnya. -->
+
+<style id="lobby-dock-fill-all-visible-buttons">
+/* Setiap tombol yang terlihat membagi seluruh lebar dock secara merata.
+   Tombol berstatus hidden tidak menyisakan kolom kosong. */
+#lobbyScreen .lobby-dock-row{
+  display:flex!important;
+  width:100%!important;
+  min-width:0!important;
+  align-items:stretch!important;
+  justify-content:stretch!important;
+  gap:clamp(3px,1vw,6px)!important;
+}
+#lobbyScreen .lobby-dock-row>.lobby-dock-button{
+  display:flex!important;
+  flex:1 1 0!important;
+  width:0!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:clamp(39px,11vw,48px)!important;
+  min-height:0!important;
+  padding:0!important;
+  margin:0!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-size:clamp(15px,5.2vw,23px)!important;
+  line-height:1!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+#lobbyScreen .lobby-dock-row>.lobby-dock-button.hidden,
+#lobbyScreen .lobby-dock-row>.lobby-dock-button[hidden]{display:none!important;}
+#lobbyScreen .lobby-quick-actions{box-sizing:border-box!important;width:auto!important;}
+@media(max-width:380px){
+  #lobbyScreen .lobby-dock-row{gap:3px!important}
+  #lobbyScreen .lobby-dock-row>.lobby-dock-button{font-size:clamp(14px,5vw,19px)!important;height:40px!important;border-radius:10px!important}
+}
+</style>
