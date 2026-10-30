@@ -672,6 +672,13 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
   border:1px solid #ff78bd35!important;
   color:#fff!important;
 }
+
+/* Dock gabungan: navigasi, spin, hadiah level, dan tugas hanya memakai ikon. */
+#lobbyScreen .lobby-dock-row{display:grid!important;grid-template-columns:repeat(9,minmax(0,1fr))!important;gap:4px!important;align-items:center!important}
+#lobbyScreen .lobby-dock-button{width:100%!important;max-width:none!important;min-width:0!important;height:42px!important;min-height:42px!important;padding:0!important;font-size:clamp(15px,4.8vw,22px)!important;flex:none!important;border-radius:12px!important;white-space:nowrap!important}
+#lobbyScreen .lobby-quick-actions{padding:8px 7px 5px!important}
+#lobbyScreen #lobbyInventorySummary{font-size:9px!important}
+@media(max-width:360px){#lobbyScreen .lobby-dock-row{gap:3px!important}#lobbyScreen .lobby-dock-button{height:38px!important;min-height:38px!important;font-size:16px!important;border-radius:10px!important}#lobbyScreen .lobby-quick-actions{padding:6px 5px 4px!important}}
 </style>
 
 </head>
@@ -703,7 +710,7 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
 <div class="currency-chip coins"><span class="currency-icon">🪙</span><span class="currency-value" id="lobbyCoinBalance">0</span></div>
 <div class="currency-chip diamonds"><span class="currency-icon">💎</span><span class="currency-value" id="lobbyDiamondBalance">0</span></div>
 <button aria-label="Tukar koin dan klaim berlian" id="lobbyCurrencyPlus" title="Tukar koin / klaim berlian" type="button">＋</button>
-</div><div id="lobbyProgressActions" aria-label="Hadiah dan tugas"><button id="openLuckyWheelButton" type="button" class="secondary">🎡 SPIN</button><button id="openMissionsButton" type="button" class="secondary">📋 TUGAS</button><button id="openLevelRewardsButton" type="button" class="secondary">🎁 HADIAH LEVEL</button></div><div class="hero"><div class="eyebrow">Welcome to the arena</div><h1>LOBI GAME</h1><p>Bentuk SOS secara horizontal, vertikal, atau diagonal. Setiap garis SOS memberi 1 poin; jika kamu mendapat poin, giliranmu berlanjut.</p></div>
+</div><div class="hero"><div class="eyebrow">Welcome to the arena</div><h1>LOBI GAME</h1><p>Bentuk SOS secara horizontal, vertikal, atau diagonal. Setiap garis SOS memberi 1 poin; jika kamu mendapat poin, giliranmu berlanjut.</p></div>
 <div class="grid">
 <div class="panel"><h2>🎮 Mode Offline</h2><p class="muted">Main bergantian di perangkat yang sama. Pilih jumlah pemain dan ukuran papan.</p><div class="stack"><div><label>Jumlah pemain</label><select id="offlinePlayers"><option value="2">2 pemain</option><option value="3">3 pemain</option><option value="4">4 pemain</option><option value="5">5 pemain</option><option value="6">6 pemain</option></select></div><div><label>Ukuran papan</label><select id="offlineSize"><option value="5">5 × 5</option><option value="6">6 × 6</option><option selected="" value="7">7 × 7</option><option value="8">8 × 8</option><option value="9">9 × 9</option></select></div><div class="stack" id="offlineNames"></div><button class="full" id="startOffline">MULAI OFFLINE</button></div></div>
 <div class="panel"><h2>🌐 Mode Online</h2><p class="muted">Isi nickname terlebih dahulu untuk membuat room atau bergabung dengan kode 6 karakter. Kode room berlaku 5 menit sejak dibuat.</p><div class="stack"><div><label>Nickname game</label><input id="nickname" maxlength="18" placeholder="Contoh: SOSMaster" required=""/></div><div><label>Mode permainan untuk room baru</label><div id="onlineModeChoices" role="group" aria-label="Pilih mode online"><button type="button" data-online-mode="solo" aria-pressed="true"><span class="mode-name">👤 SOLO</span><span class="mode-desc">Aturan online biasa</span></button><button type="button" data-online-mode="team" aria-pressed="false"><span class="mode-name">🛡️ TIM S vs TIM O</span><span class="mode-desc">5 kursi per tim</span></button></div><input id="onlineMode" type="hidden" value="solo"/><p id="onlineModeNote" class="muted">Mode solo menggunakan aturan online seperti biasa.</p></div><div><label>Ukuran papan</label><select id="onlineSize"><option value="5">5 × 5</option><option value="6">6 × 6</option><option selected="" value="7">7 × 7</option><option value="8">8 × 8</option><option value="9">9 × 9</option></select></div><button class="full" id="createRoom">＋ BUAT ROOM</button><div><label>Kode room</label><input id="joinCode" maxlength="6" placeholder="A1B2C3" style="text-transform:uppercase"/></div><button class="secondary full" id="joinRoom">GABUNG ROOM</button><div aria-live="polite" class="muted" id="onlineMsg"></div></div></div>
@@ -715,6 +722,9 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
 <button class="lobby-dock-button" id="lobbyOpenFriends" type="button" aria-label="Pertemanan" title="Pertemanan">👥</button>
 <button class="lobby-dock-button" id="lobbyOpenLeaderboard" type="button" aria-label="Ranking" title="Ranking">🏆</button>
 <button class="lobby-dock-button" id="lobbyOpenStats" type="button" aria-label="Statistik" title="Statistik">📊</button>
+<button class="lobby-dock-button" id="openLuckyWheelButton" type="button" aria-label="Spin" title="Spin">🎡</button>
+<button class="lobby-dock-button" id="openLevelRewardsButton" type="button" aria-label="Hadiah level" title="Hadiah level">🎁</button>
+<button class="lobby-dock-button" id="openMissionsButton" type="button" aria-label="Tugas harian dan mingguan" title="Tugas harian dan mingguan">📋</button>
 <button class="lobby-dock-button danger hidden" id="lobbyOpenDeveloper" type="button" aria-label="Wewenang developer" title="Wewenang developer">🛡️</button>
 </div>
 <p class="small" id="lobbyInventorySummary">Saldo dan koleksi akun tersinkron dengan Supabase.</p>
