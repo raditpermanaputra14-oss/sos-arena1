@@ -1687,12 +1687,11 @@ async function submitOnlineMove(i,p){
   window.sosKeepTurnActiveFor=found.length?user?.id:null;
   // Reconcile the three legendary relic effects against the actual move. The RPC places the symbol;
   // this client reconciliation applies the card rules and persists the resulting shared state.
-  // Gunakan state relik yang dikembalikan RPC setelah langkah. Jika server
-  // menyatakan relic_state=null, jangan menghidupkan lagi relik dari snapshot lama.
-  const oldRelic=Object.prototype.hasOwnProperty.call(room,'relic_state')
-    ? (room.relic_state?{...room.relic_state}:null)
-    : (priorRoom?.relic_state?{...priorRoom.relic_state}:null);
-  let relic=oldRelic, adjustedScores={...(room?.scores||priorRoom?.scores||{})};
+  // Gunakan relic_state dan skor dari hasil RPC terbaru sebagai sumber utama.
+  // Jangan membaca relic/skor dari snapshot sebelum langkah karena bisa mengaktifkan
+  // efek lama dan menggandakan poin yang sudah dihitung oleh sos_submit_move.
+  let relic=room?.relic_state?{...room.relic_state}:null;
+  let adjustedScores={...(room?.scores||priorRoom?.scores||{})};
   const chanceMap={...(adjustedScores.__letter_chances||{})};
   const actorChance=letterChanceState(user.id,adjustedScores);
   const chanceMax=letterChanceMax();
@@ -1724,18 +1723,27 @@ async function submitOnlineMove(i,p){
   const scoreKeyFor=(id)=>team?teamScoreKey(playerTeam(players.find(x=>x.user_id===id))):id;
   const activeK=relic?.type==='relic-k';
   if(found.length){
-    let points=found.length;
+    const ownKey=scoreKeyFor(actorId);
+    // RPC sos_submit_move sudah menghitung poin dasar SOS. Ambil delta dari hasil
+    // RPC; fallback ke jumlah garis hanya bila server belum mengubah skor.
+    const beforeScore=Number((priorRoom?.scores||{})[ownKey])||0;
+    const rpcScore=Number((room?.scores||{})[ownKey])||0;
+    const rpcAward=Math.max(0,rpcScore-beforeScore);
+    const basePoints=rpcAward>0?rpcAward:found.length;
+    let points=basePoints;
     if(relic?.owner===actorId&&relic.type==='multiple'&&found.length>=2)points=found.length*found.length;
-    if(activeK&&relic.owner===actorId&&relic.active!==false){if(found.length>=2)points=found.length*found.length;points+=1;}
-    if(relic?.owner===actorId&&relic.type==='combo'&&relic.active===true&&combo>=1)points+=1;
-    const ownKey=scoreKeyFor(actorId);adjustedScores[ownKey]=(Number(adjustedScores[ownKey])||0)+points;
+    if(activeK&&relic.owner===actorId){if(found.length>=2)points=found.length*found.length;points+=1;}
+    if(relic?.owner===actorId&&relic.type==='combo'&&combo>=1)points+=1;
+    // Hanya tambahkan selisih bonus ke skor RPC, bukan menambahkan ulang poin dasar.
+    const bonusDelta=points-basePoints;
+    if(bonusDelta!==0)adjustedScores[ownKey]=(Number(adjustedScores[ownKey])||0)+bonusDelta;
     if(activeK&&relic.owner!==actorId){
       const ownerSide=playerTeam(players.find(x=>x.user_id===relic.owner));
       if(team){const enemyKey=scoreKeyFor(actorId);if(playerTeam(players.find(x=>x.user_id===actorId))!==ownerSide)adjustedScores[enemyKey]=(Number(adjustedScores[enemyKey])||0)-points;}
       else order.filter(id=>id!==relic.owner).forEach(id=>{adjustedScores[id]=(Number(adjustedScores[id])||0)-points});
     }
     if(relic?.owner===actorId&&relic.type==='multiple'&&found.length<2)relic=null;
-    // Relik K stays active through SOS, combo, and multipel; it burns out on a non-SOS move.
+    // Relik K tetap aktif melewati SOS; ia berakhir saat pemiliknya membuat langkah non-SOS.
   } else if(activeK || (relic?.owner===actorId&&['combo','multiple'].includes(relic.type))) relic=null;
   let nextTurn=Number(room.current_turn)||0;
   const nextRoomPatch={scores:adjustedScores,relic_state:relic};
