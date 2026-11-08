@@ -697,6 +697,24 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
 @media(max-width:360px){#lobbyScreen .lobby-dock-row{gap:3px!important}#lobbyScreen .lobby-dock-button{height:38px!important;min-height:38px!important;font-size:16px!important;border-radius:10px!important}#lobbyScreen .lobby-quick-actions{padding:6px 5px 4px!important}}
 </style>
 
+
+<style id="online-letter-chances-style">
+.letter-chance-score{display:flex;flex-direction:column;gap:7px;min-width:min(100%,220px)}
+.letter-chance-list{display:grid;gap:5px}
+.letter-chance-player,.heart-player{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px}
+.letter-chance-values{display:flex;gap:10px;font-weight:1000;white-space:nowrap}
+.letter-chance-s{color:#42caff;text-shadow:0 0 8px #168ec477}
+.letter-chance-o{color:#ff82bc;text-shadow:0 0 8px #e85c9b77}
+.letter-chance-values .empty{opacity:.32;text-shadow:none}
+#letterChanceConfirm{position:fixed;inset:0;z-index:15000;display:none;align-items:center;justify-content:center;padding:18px;background:#020512d9}
+#letterChanceConfirm.open{display:flex}
+#letterChanceConfirm .letter-confirm-panel{width:min(440px,100%);padding:20px;border:1px solid #65f4ff66;border-radius:20px;background:linear-gradient(145deg,#142442,#21132e);box-shadow:0 18px 60px #000b}
+#letterChanceConfirm p{font-size:14px;line-height:1.65;color:#e9edff}
+#letterChanceConfirm .letter-confirm-actions{display:flex;gap:10px;margin-top:16px}
+#letterChanceConfirm button{flex:1}
+@media(max-width:480px){.letter-chance-score{min-width:100%}.letter-chance-values{font-size:14px}}
+</style>
+
 </head>
 <body>
 <!-- Background music: a single manager switches tracks so they never overlap. -->
@@ -1378,7 +1396,7 @@ window.requireOnline = async function(){
  return true;
 }
 
-$('createRoom').onclick=async()=>{const btn=$('createRoom');if(btn.disabled)return;btn.disabled=true;btn.textContent='MEMBUAT ROOM…';try{if(!await window.requireOnline())return;if(!sb&&!initSupabase())return;$('onlineMsg').textContent='Menghubungkan ke server dan membuat room…';size=+$('onlineSize').value;const teamMode=$('onlineMode')?.value==='team';let code=window.randomCode(),expiry=new Date(Date.now()+300000).toISOString();let r=await sb.from('sos_rooms').insert({code,host_id:user.id,status:'lobby',team_mode:teamMode?'team':'solo',board:Array(size*size).fill(null),scores:{__hearts:{}},players_order:[],board_size:size,expires_at:expiry}).select().single();if(r.error){$('onlineMsg').textContent='Room gagal dibuat: '+r.error.message+'. Jalankan SQL migrasi mode tim, lalu periksa RLS Supabase.';return}room=r.data;roomId=room.id;host=true;mode='online';let p=await sb.from('sos_room_players').insert({room_id:roomId,user_id:user.id,nickname,is_host:true,...(teamMode?{team_side:'S',team_seat:1}:{})}).select().single();if(p.error){$('onlineMsg').textContent='Room tersimpan, tetapi gagal menambahkan host: '+p.error.message+'. Periksa RLS sos_room_players.';return}await refreshPlayers();setupRealtime();enterRoom()}catch(e){$('onlineMsg').textContent='Terjadi kesalahan saat membuat room: '+(e?.message||String(e))}finally{btn.disabled=false;btn.textContent='＋ BUAT ROOM'}};
+$('createRoom').onclick=async()=>{const btn=$('createRoom');if(btn.disabled)return;btn.disabled=true;btn.textContent='MEMBUAT ROOM…';try{if(!await window.requireOnline())return;if(!sb&&!initSupabase())return;$('onlineMsg').textContent='Menghubungkan ke server dan membuat room…';size=+$('onlineSize').value;const teamMode=$('onlineMode')?.value==='team';let code=window.randomCode(),expiry=new Date(Date.now()+300000).toISOString();let r=await sb.from('sos_rooms').insert({code,host_id:user.id,status:'lobby',team_mode:teamMode?'team':'solo',board:Array(size*size).fill(null),scores:{__hearts:{},__letter_chances:{}},players_order:[],board_size:size,expires_at:expiry}).select().single();if(r.error){$('onlineMsg').textContent='Room gagal dibuat: '+r.error.message+'. Jalankan SQL migrasi mode tim, lalu periksa RLS Supabase.';return}room=r.data;roomId=room.id;host=true;mode='online';let p=await sb.from('sos_room_players').insert({room_id:roomId,user_id:user.id,nickname,is_host:true,...(teamMode?{team_side:'S',team_seat:1}:{})}).select().single();if(p.error){$('onlineMsg').textContent='Room tersimpan, tetapi gagal menambahkan host: '+p.error.message+'. Periksa RLS sos_room_players.';return}await refreshPlayers();setupRealtime();enterRoom()}catch(e){$('onlineMsg').textContent='Terjadi kesalahan saat membuat room: '+(e?.message||String(e))}finally{btn.disabled=false;btn.textContent='＋ BUAT ROOM'}};
 $('joinRoom').onclick=async()=>{if(!await window.requireOnline())return;let code=$('joinCode').value.trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(code)){$('onlineMsg').textContent='Kode harus tepat 6 huruf/angka.';return}let r=await sb.from('sos_rooms').select('*').eq('code',code).maybeSingle();if(r.error||!r.data){$('onlineMsg').textContent='Room tidak ditemukan.';return}if(new Date(r.data.expires_at)<new Date()||r.data.status==='expired'){$('onlineMsg').textContent='Kode room sudah kedaluwarsa.';return}if(r.data.status==='finished'){$('onlineMsg').textContent='Game room sudah selesai.';return}room=r.data;roomId=room.id;size=room.board_size;host=room.host_id===user.id;mode='online';let ex=await sb.from('sos_room_players').select('*').eq('room_id',roomId).eq('user_id',user.id).maybeSingle();if(!ex.data){let playerRow={room_id:roomId,user_id:user.id,nickname,is_host:host};if(isTeamRoom(room)){const all=await sb.from('sos_room_players').select('*').eq('room_id',roomId);if(all.error){$('onlineMsg').textContent=all.error.message;return}const list=all.data||[];if(list.length>=10){$('onlineMsg').textContent='Room tim sudah penuh (maksimal 10 pemain).';return}const counts={S:list.filter(p=>p.team_side==='S').length,O:list.filter(p=>p.team_side==='O').length};let targetSide=counts.S<counts.O?'S':counts.O<counts.S?'O':(counts.S>0&&counts.O===0?'O':'S');let targetSeat=null;for(let seat=1;seat<=5;seat++){if(!list.some(p=>p.team_side===targetSide&&Number(p.team_seat)===seat)){targetSeat=seat;break}}if(targetSeat===null){targetSide=targetSide==='S'?'O':'S';for(let seat=1;seat<=5;seat++){if(!list.some(p=>p.team_side===targetSide&&Number(p.team_seat)===seat)){targetSeat=seat;break}}}if(targetSeat===null){$('onlineMsg').textContent='Tidak ada kursi kosong di room tim.';return}Object.assign(playerRow,{team_side:targetSide,team_seat:targetSeat})}let ins=await sb.from('sos_room_players').insert(playerRow);if(ins.error){$('onlineMsg').textContent=ins.error.message;return}}else if(isTeamRoom(room)&&room.status==='lobby'&&(!ex.data.team_side||!ex.data.team_seat)){const listRes=await sb.from('sos_room_players').select('*').eq('room_id',roomId);if(listRes.error){$('onlineMsg').textContent=listRes.error.message;return}const list=listRes.data||[];const counts={S:list.filter(p=>p.team_side==='S').length,O:list.filter(p=>p.team_side==='O').length};let targetSide=counts.S<counts.O?'S':counts.O<counts.S?'O':(counts.S>0&&counts.O===0?'O':'S');let targetSeat=null;for(let seat=1;seat<=5;seat++){if(!list.some(p=>p.team_side===targetSide&&Number(p.team_seat)===seat)){targetSeat=seat;break}}if(targetSeat===null){targetSide=targetSide==='S'?'O':'S';for(let seat=1;seat<=5;seat++){if(!list.some(p=>p.team_side===targetSide&&Number(p.team_seat)===seat)){targetSeat=seat;break}}}if(targetSeat===null){$('onlineMsg').textContent='Tidak ada kursi kosong di room tim.';return}const seatRes=await sb.rpc('sos_team_take_seat',{p_room_id:roomId,p_team:targetSide,p_seat:targetSeat});if(seatRes.error){$('onlineMsg').textContent=seatRes.error.message;return}}await refreshPlayers();setupRealtime();enterRoom()};
 function enterRoom(){ mode='online'; $('roomCodeDisplay').textContent=room.code;showScreen('room');renderRoomPlayers();updateExpiry();loadRoomChat();if(room.status==='playing'){mode='online';syncFromRoom(room);showScreen('game')} }
 async function refreshPlayers(){if(!roomId||!sb)return false;let r=await sb.from('sos_room_players').select('*').eq('room_id',roomId);if(r.error){players=[];$('roomPlayers').innerHTML='';let msg=document.createElement('p');msg.className='muted';msg.textContent='Gagal memuat daftar pemain: '+r.error.message+' — periksa kebijakan SELECT (RLS) tabel sos_room_players di Supabase.';$('roomPlayers').append(msg);$('roomStart').disabled=true;return false}players=Array.isArray(r.data)?r.data:[];renderRoomPlayers();return true}
@@ -1557,8 +1575,8 @@ if(mode==='online'&&previousBoard.length===board.length){const changed=[];for(le
 function currentPlayer(){if(mode==='online'){let id=room?.players_order?.[currentTurn];return players.find(p=>p.user_id===id)||{user_id:id,nickname:'Pemain'}}return players[currentTurn]||players[0]}
 function turnName(){let p=currentPlayer();return mode==='online'&&p.user_id===user?.id?'Kamu':p.nickname}
 function updateTurnUI(){let p=currentPlayer(),keepSOSExtraTurn=mode==='online'&&!!p.user_id&&window.sosKeepTurnActiveFor===p.user_id,waitingForStart=mode==='online'&&!!room?.turn_started_at&&Date.parse(room.turn_started_at)>Date.now()&&!keepSOSExtraTurn,mine=(mode==='offline'||p.user_id===user?.id)&&!(mode==='online'&&onlineSurrendered().includes(user?.id))&&!waitingForStart;const boardEl=$('board');if(boardEl)boardEl.classList.toggle('my-turn',mine);if(boardEl)boardEl.classList.toggle('wait-turn',!mine);$('turnTitle').textContent='Giliran: '+turnName();$('turnSub').textContent=mine?'Pilih S atau O, lalu pilih kotak.':'Menunggu '+p.nickname+' bermain…';$('gameHint').textContent=mine?'Klik kotak kosong untuk menaruh huruf '+chosen+'.':mode==='online'?'Giliran pemain lain.':'Giliran pemain lain.';$('chooseS').disabled=!mine;$('chooseO').disabled=!mine;$('chooseS').classList.toggle('selected-letter',mine&&chosen==='S');$('chooseO').classList.toggle('selected-letter',mine&&chosen==='O');document.querySelectorAll('.cell').forEach(c=>c.disabled=!!c.dataset.filled||!mine||moveLock);if(mode==='online'){let start=room?.turn_started_at?new Date(room.turn_started_at).getTime():Date.now();turnDeadline=start+30000;updateTurnTimer()}else $('turnTimer').textContent='∞'}
-$('chooseS').onclick=()=>{chosen='S';updateTurnUI();$('gameHint').textContent='Huruf dipilih: S'};
-$('chooseO').onclick=()=>{chosen='O';updateTurnUI();$('gameHint').textContent='Huruf dipilih: O'};
+$('chooseS').onclick=()=>{chosen='S';if(mode==='online'&&user){const sc={...(scores||{})},map={...(sc.__letter_chances||{})},st=letterChanceState(user.id,sc);st.o=letterChanceMax();map[user.id]=st;sc.__letter_chances=map;scores=sc;room={...room,scores:sc};sb.from('sos_rooms').update({scores:sc}).eq('id',roomId).eq('status','playing').then(r=>{if(r.error)console.warn('Refresh kesempatan O gagal:',r.error.message)});renderScores()}updateTurnUI();$('gameHint').textContent='Huruf dipilih: S'};
+$('chooseO').onclick=()=>{chosen='O';if(mode==='online'&&user){const sc={...(scores||{})},map={...(sc.__letter_chances||{})},st=letterChanceState(user.id,sc);st.s=letterChanceMax();map[user.id]=st;sc.__letter_chances=map;sc.__letter_chances=map;scores=sc;room={...room,scores:sc};sb.from('sos_rooms').update({scores:sc}).eq('id',roomId).eq('status','playing').then(r=>{if(r.error)console.warn('Refresh kesempatan S gagal:',r.error.message)});renderScores()}updateTurnUI();$('gameHint').textContent='Huruf dipilih: O'};
 function renderBoard(){let b=$('board');b.style.setProperty('--board-size',size);b.style.gridTemplateColumns=`repeat(${size},minmax(0,1fr))`;b.style.gridTemplateRows=`repeat(${size},minmax(0,1fr))`;b.style.width='100%';b.style.height='100%';b.innerHTML='';$('lines').innerHTML='';board=board||Array(size*size).fill(null);for(let i=0;i<size*size;i++){let btn=document.createElement('button');btn.className='cell'+(board[i]?' '+board[i].toLowerCase():'');btn.dataset.filled=board[i]?'1':'';if(board[i]){btn.textContent=board[i]}else{let number=document.createElement('span');number.className='cell-number';number.textContent=String(i+1);btn.append(number)}btn.setAttribute('aria-label','Petak nomor '+(i+1)+(board[i]?' berisi '+board[i]:''));btn.onclick=()=>makeMove(i);b.append(btn)}drawLines();updateTurnUI()}
 function heartsMax(){return Math.max(3,Math.min(7,Number(size||7)-2))}
 function heartsFor(id,src=scores){const map=src?.__hearts||{};const n=Number(map[id]);return Number.isFinite(n)&&n>=0?Math.min(heartsMax(),n):heartsMax()}
@@ -1572,6 +1590,7 @@ function renderScores(){
   const list=document.createElement('div');list.className='heart-list';
   players.forEach(p=>{const id=p.user_id||p.id;const item=document.createElement('div');item.className='heart-player';const nm=document.createElement('span');nm.textContent=(id===user?.id?'Kamu':p.nickname||'Pemain');const hs=document.createElement('strong');const count=heartsFor(id);hs.textContent='♥'.repeat(count)+'♡'.repeat(Math.max(0,heartsMax()-count));hs.setAttribute('aria-label',count+' dari '+heartsMax()+' nyawa');item.append(nm,hs);list.append(item)});
   heartPanel.append(list);$('scorebar').append(heartPanel);
+  renderLetterChances();
  }
 }
 function findSOS(i){let r=Math.floor(i/size),c=i%size,found=[];const dirs=[[0,1],[1,0],[1,1],[1,-1]];for(let [dr,dc] of dirs){for(let start=-2;start<=0;start++){let coords=[0,1,2].map(k=>[r+(start+k)*dr,c+(start+k)*dc]);if(coords.some(([rr,cc])=>rr<0||cc<0||rr>=size||cc>=size))continue;if(!coords.some(([rr,cc])=>rr===r&&cc===c))continue;let vals=coords.map(([rr,cc])=>board[rr*size+cc]);if(vals.join('')==='SOS')found.push(coords.map(([rr,cc])=>rr*size+cc))}}return found}
@@ -1617,6 +1636,44 @@ function showSOSShadows(found=[],actor=null){
  });
 }
 
+
+function letterChanceMax(){return Math.max(1,Number(size||5)-3)}
+function letterChanceState(id,source=scores){
+ const all=source?.__letter_chances||{},raw=all[id]||{};
+ const max=letterChanceMax();
+ return {s:Math.max(0,Math.min(max,Number.isFinite(Number(raw.s))?Number(raw.s):max)),
+         o:Math.max(0,Math.min(max,Number.isFinite(Number(raw.o))?Number(raw.o):max)),
+         last:['S','O'].includes(raw.last)?raw.last:''};
+}
+function renderLetterChances(){
+ if(mode!=='online')return;
+ const panel=document.createElement('div');panel.className='score letter-chance-score';
+ const title=document.createElement('span');title.textContent='KESEMPATAN HURUF S / O';panel.append(title);
+ const list=document.createElement('div');list.className='letter-chance-list';
+ players.forEach(p=>{
+  const id=p.user_id||p.id,st=letterChanceState(id);
+  const row=document.createElement('div');row.className='letter-chance-player';
+  const nm=document.createElement('span');nm.textContent=id===user?.id?'Kamu':(p.nickname||'Pemain');
+  const vals=document.createElement('strong');vals.className='letter-chance-values';
+  const ss=document.createElement('span');ss.className='letter-chance-s'+(st.s===0?' empty':'');ss.textContent='S '+st.s+'/'+letterChanceMax();
+  const oo=document.createElement('span');oo.className='letter-chance-o'+(st.o===0?' empty':'');oo.textContent='O '+st.o+'/'+letterChanceMax();
+  vals.append(ss,oo);row.append(nm,vals);list.append(row);
+ });
+ panel.append(list);
+ const sbEl=$('scorebar'),heart=sbEl?.querySelector('.heart-score');
+ if(heart)sbEl.insertBefore(panel,heart);else sbEl?.append(panel);
+}
+function askLetterChanceConfirmation(letter){
+ return new Promise(resolve=>{
+  const overlay=$('letterChanceConfirm'),txt=$('letterChanceConfirmText'),yes=$('letterChanceYes'),no=$('letterChanceCancel');
+  if(!overlay){resolve(window.confirm('Kesempatan menulis huruf '+letter+' habis. Lanjutkan?'));return}
+  txt.textContent='Kesempatan menulis huruf '+letter+' kamu habis. Pastikan kamu mendapatkan SOS, atau memilih menulis huruf '+(letter==='S'?'O':'S')+'. Jika tidak, nyawa kamu akan berkurang satu.';
+  overlay.classList.add('open');
+  const finish=value=>{overlay.classList.remove('open');yes.removeEventListener('click',onYes);no.removeEventListener('click',onNo);resolve(value)};
+  const onYes=()=>finish(true),onNo=()=>finish(false);
+  yes.addEventListener('click',onYes);no.addEventListener('click',onNo);
+ });
+}
 async function submitOnlineMove(i,p){
  const priorRoom=room,wasFirst=!room?.first_sos_player_id,letter=chosen;
  try{
@@ -1632,6 +1689,29 @@ async function submitOnlineMove(i,p){
   // this client reconciliation applies the card rules and persists the resulting shared state.
   const oldRelic=priorRoom?.relic_state?{...priorRoom.relic_state}:null;
   let relic=oldRelic, adjustedScores={...(priorRoom?.scores||room.scores||{})};
+  const chanceMap={...(adjustedScores.__letter_chances||{})};
+  const actorChance=letterChanceState(user.id,adjustedScores);
+  const chanceMax=letterChanceMax();
+  const otherLetter=letter==='S'?'o':'s';
+  // Berganti huruf: jatah huruf sebelumnya pulih. SOS memulihkan keduanya.
+  if(found.length){actorChance.s=chanceMax;actorChance.o=chanceMax;}
+  else{
+   if(actorChance.last && actorChance.last!==letter)actorChance[otherLetter]=chanceMax;
+   if(actorChance[letter.toLowerCase()]<=0){
+    const heartMap={...(adjustedScores.__hearts||{})};
+    const currentHearts=heartsFor(user.id,adjustedScores);
+    heartMap[user.id]=Math.max(0,currentHearts-1);
+    adjustedScores.__hearts=heartMap;
+    if(heartMap[user.id]===0){
+     const surrendered=[...(room.surrendered_players||priorRoom?.surrendered_players||[])];
+     if(!surrendered.includes(user.id))surrendered.push(user.id);
+     room={...room,surrendered_players:surrendered};
+    }
+   }else actorChance[letter.toLowerCase()]--;
+  }
+  actorChance.last=letter;
+  chanceMap[user.id]=actorChance;
+  adjustedScores.__letter_chances=chanceMap;
   const order=room.players_order||priorRoom?.players_order||players.map(x=>x.user_id);
   const actorId=user?.id;
   const team=isTeamRoom(room);
@@ -1651,8 +1731,20 @@ async function submitOnlineMove(i,p){
     if(relic?.owner===actorId&&relic.type==='multiple'&&found.length<2)relic=null;
     // Relik K stays active through SOS, combo, and multipel; it burns out on a non-SOS move.
   } else if(activeK || (relic?.owner===actorId&&['combo','multiple'].includes(relic.type))) relic=null;
-  const nextTurn=Number(room.current_turn)||0;
+  let nextTurn=Number(room.current_turn)||0;
   const nextRoomPatch={scores:adjustedScores,relic_state:relic};
+  if(Array.isArray(room.surrendered_players))nextRoomPatch.surrendered_players=room.surrendered_players;
+  if(Array.isArray(room.surrendered_players)&&room.surrendered_players.includes(actorId)&&!found.length){
+   for(let n=0;n<order.length&&room.surrendered_players.includes(order[nextTurn]);n++)nextTurn=(nextTurn+1)%order.length;
+   nextRoomPatch.current_turn=nextTurn;
+   nextRoomPatch.turn_started_at=new Date().toISOString();
+   const activeIds=order.filter(id=>!room.surrendered_players.includes(id));
+   if(team){
+    const activeS=activeIds.filter(id=>playerTeam(players.find(x=>x.user_id===id))==='S');
+    const activeO=activeIds.filter(id=>playerTeam(players.find(x=>x.user_id===id))==='O');
+    if(!activeS.length||!activeO.length){nextRoomPatch.status='finished';nextRoomPatch.result_reason='team_surrender';nextRoomPatch.winning_team=activeS.length?'S':activeO.length?'O':null;}
+   }else if(activeIds.length<=1){nextRoomPatch.status='finished';nextRoomPatch.result_reason=activeIds.length===1?'last_player_standing':'all_surrendered';}
+  }
   const patch=await sb.from('sos_rooms').update(nextRoomPatch).eq('id',roomId).eq('status','playing');
   if(patch.error)throw new Error('Langkah tersimpan, tetapi efek relik gagal disimpan: '+patch.error.message);
   room={...room,...nextRoomPatch};syncFromRoom(room);
@@ -1665,7 +1757,7 @@ async function submitOnlineMove(i,p){
   alert('Gagal menyimpan langkah: '+(e?.message||String(e)));
  }finally{moveLock=false;if(mode==='online'&&room?.status==='playing')updateTurnUI()}
 }
-async function makeMove(i){if(moveLock||board[i])return;let p=currentPlayer();if(mode==='online'&&p.user_id!==user?.id)return;moveLock=true;if(mode==='online'){await submitOnlineMove(i,p);return;}if(mode==='online'&&room?.relic_state){window.sosRelicActive=['combo','multiple','steal','bonus','tactic','relic-k'].includes(room.relic_state.type)?{...room.relic_state}:null;window.sosSkipRelic=room.relic_state.type==='skip'?{level:Number(room.relic_state.level)||1,targetId:room.relic_state.targetId}:null;window.sosCardBonus=room.relic_state.type==='bonus'&&room.relic_state.owner===user?.id?{itemId:room.relic_state.itemId,owner:room.relic_state.owner}:null;}board[i]=chosen;let found=findSOS(i);let pid=mode==='online'?p.user_id:p.id;announceMoveEvent(mode==='online'&&p.user_id===user?.id?'Kamu':(mode==='offline'?'Kamu':playerDisplayName(p)),chosen,i,found.length,mode==='online'?(found.length>0&&!room?.first_sos_player_id):null);if(found.length){let extra=window.sosCardBonus?1:0;let earned=found.length+extra;
+async function makeMove(i){if(moveLock||board[i])return;let p=currentPlayer();if(mode==='online'&&p.user_id!==user?.id)return;if(mode==='online'&&letterChanceState(user.id)[chosen.toLowerCase()]<=0){const proceed=await askLetterChanceConfirmation(chosen);if(!proceed)return;}moveLock=true;if(mode==='online'){await submitOnlineMove(i,p);return;}if(mode==='online'&&room?.relic_state){window.sosRelicActive=['combo','multiple','steal','bonus','tactic','relic-k'].includes(room.relic_state.type)?{...room.relic_state}:null;window.sosSkipRelic=room.relic_state.type==='skip'?{level:Number(room.relic_state.level)||1,targetId:room.relic_state.targetId}:null;window.sosCardBonus=room.relic_state.type==='bonus'&&room.relic_state.owner===user?.id?{itemId:room.relic_state.itemId,owner:room.relic_state.owner}:null;}board[i]=chosen;let found=findSOS(i);let pid=mode==='online'?p.user_id:p.id;announceMoveEvent(mode==='online'&&p.user_id===user?.id?'Kamu':(mode==='offline'?'Kamu':playerDisplayName(p)),chosen,i,found.length,mode==='online'?(found.length>0&&!room?.first_sos_player_id):null);if(found.length){let extra=window.sosCardBonus?1:0;let earned=found.length+extra;
  if(window.sosRelicActive?.owner===pid&&window.sosRelicActive.type==='tactic'){const ef=window.sosRelicActive.effect;if(ef==='bonus1')earned+=1;else if(ef==='double')earned+=found.length;else if(ef==='bonus2')earned+=2;else if(ef==='bonus3')earned+=3;else if(ef==='bonus4')earned+=4;else if(ef==='recover2')earned+=2;else if(ef==='triple')earned+=found.length*2;}
  if((window.sosRelicActive?.owner===pid&&window.sosRelicActive.type==='multiple'||window.sosRelicActive?.type==='relic-k')&&found.length>=2)earned=found.length*found.length;
  if(window.sosRelicActive?.type==='relic-k'&&window.sosRelicActive.owner===pid)earned+=1;else if(window.sosRelicActive?.owner===pid&&window.sosRelicActive.type==='combo'&&combo>=1)earned+=1;
@@ -2487,6 +2579,15 @@ const body=el('featureModalBody');if(body){const obs=new MutationObserver(()=>{i
 } 
 })();
 </script>
+
+<div id="letterChanceConfirm" role="dialog" aria-modal="true" aria-labelledby="letterChanceConfirmTitle">
+ <div class="letter-confirm-panel">
+  <h3 id="letterChanceConfirmTitle">KESEMPATAN MENULIS HABIS</h3>
+  <p id="letterChanceConfirmText"></p>
+  <div class="letter-confirm-actions"><button type="button" class="secondary" id="letterChanceCancel">BATAL</button><button type="button" id="letterChanceYes">IYA</button></div>
+ </div>
+</div>
+
 </body></html>
 <!-- v18: tombol Wewenang Developer disembunyikan paksa untuk akun non-developer; akun developer tetap dapat melihatnya. -->
 
