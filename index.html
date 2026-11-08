@@ -1637,7 +1637,8 @@ function showSOSShadows(found=[],actor=null){
 }
 
 
-function letterChanceMax(){return Math.max(1,Number(size||5)-3)}
+// Kesempatan per huruf mengikuti ukuran papan: 5x5 = 1, 6x6 = 2, 7x7 = 3, dst.
+function letterChanceMax(){return Math.max(1,Number(size||5)-4)}
 function letterChanceState(id,source=scores){
  const all=source?.__letter_chances||{},raw=all[id]||{};
  const max=letterChanceMax();
@@ -1742,9 +1743,15 @@ async function submitOnlineMove(i,p){
       if(team){const enemyKey=scoreKeyFor(actorId);if(playerTeam(players.find(x=>x.user_id===actorId))!==ownerSide)adjustedScores[enemyKey]=(Number(adjustedScores[enemyKey])||0)-points;}
       else order.filter(id=>id!==relic.owner).forEach(id=>{adjustedScores[id]=(Number(adjustedScores[id])||0)-points});
     }
+    // Kartu Multipel hanya bertahan bila langkah ini benar-benar menghasilkan
+    // minimal dua garis SOS. SOS biasa mengakhiri efeknya.
     if(relic?.owner===actorId&&relic.type==='multiple'&&found.length<2)relic=null;
-    // Relik K tetap aktif melewati SOS; ia berakhir saat pemiliknya membuat langkah non-SOS.
-  } else if(activeK || (relic?.owner===actorId&&['combo','multiple'].includes(relic.type))) relic=null;
+    // Kartu Kombo berlanjut selama rangkaian SOS tidak terputus.
+    // Relik K menggabungkan bonus SOS pertama, kombo, dan multipel; semua
+    // efek berhenti segera setelah ada langkah yang tidak menghasilkan SOS.
+  } else if(activeK || (relic?.owner===actorId&&['combo','multiple'].includes(relic.type))) {
+    relic=null;
+  }
   let nextTurn=Number(room.current_turn)||0;
   const nextRoomPatch={scores:adjustedScores,relic_state:relic};
   if(Array.isArray(room.surrendered_players))nextRoomPatch.surrendered_players=room.surrendered_players;
