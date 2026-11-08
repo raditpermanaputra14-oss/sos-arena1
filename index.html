@@ -1780,10 +1780,13 @@ async function submitOnlineMove(i,p){
       const targetId=candidates.sort((a,b)=>(Number(adjustedScores[scoreKeyFor(b)])||0)-(Number(adjustedScores[scoreKeyFor(a)])||0))[0];
       if(targetId){const targetKey=scoreKeyFor(targetId);adjustedScores[targetKey]=(Number(adjustedScores[targetKey])||0)-1;}
     }
-    // Kartu taktik ID 1–25 adalah sekali pakai: efek bonus hanya berlaku
-    // pada satu langkah yang benar-benar menghasilkan SOS, lalu langsung habis.
-    // Kombo (28), Multipel (29), dan Relik K (30) bukan kartu sekali pakai.
-    const isOneShotTactic=relic?.type==='tactic'&&Number(relic.itemId)>=1&&Number(relic.itemId)<=25;
+    // Semua kartu koin yang memberi efek taktik/bonus (termasuk Pengganda
+    // Double dan Triple) hanya berlaku untuk SATU SOS yang berhasil dibuat.
+    // Jangan batasi berdasarkan rentang ID: seluruh kartu bertipe tactic
+    // dikonsumsi setelah efeknya benar-benar masuk ke skor.
+    // Pengecualian permanen/berantai memakai tipe tersendiri: combo (28),
+    // multiple (29), dan relic-k (30), sehingga tidak terhapus oleh aturan ini.
+    const isOneShotTactic=relic?.type==='tactic';
     if(isOneShotTactic&&relic.owner===actorId)relic=null;
     // Relik K tetap aktif melewati SOS; Kombo/Multipel mengikuti aturan khususnya.
   } else if(activeK || (relic?.owner===actorId&&['combo','multiple'].includes(relic.type))) relic=null;
