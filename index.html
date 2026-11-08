@@ -1883,7 +1883,7 @@ function currentAccountRole(){
  const emailDev=!!user&&(user.email||'').trim().toLowerCase()===String(DEV_EMAIL||'').trim().toLowerCase();
  if(emailDev)return 'developer';
  const role=String(accountState?.role||'player').toLowerCase();
- return ['developer','subdeveloper','admin','officer','player'].includes(role)?role:'player';
+ return ['subdeveloper','admin','officer','player'].includes(role)?role:'player';
 }
 function isDeveloperAccount(){return currentAccountRole()==='developer'}
 function isStaffAccount(){return ['developer','subdeveloper','admin','officer'].includes(currentAccountRole())}
@@ -1921,15 +1921,17 @@ async function refreshAccountProfile(){
   let profile=r.data;
   if(profile?.is_banned&&(!profile.ban_until||new Date(profile.ban_until)>new Date())){await sb.auth.signOut();user=null;showScreen('auth');throw new Error('Akun ini diblokir oleh developer. Hubungi pengelola jika merasa ini keliru.');}
   if(!profile){
-   const newId=(user.email||'').toLowerCase()===DEV_EMAIL?'000000':makePlayerId();
-   const created=await sb.from('sos_profiles').insert({user_id:user.id,player_id:newId,account_role:newId==='000000'?'developer':'player',coins:0,diamonds:0,display_name:maskEmailBasedName(user.user_metadata?.nickname||user.email?.split('@')[0]||'Pemain',user.email)||'Pemain'}).select('user_id,player_id,account_role,coins,diamonds,regular_vouchers,golden_vouchers,display_name,level,exp,is_banned,ban_until').single();
+   // Pembuatan profil dilakukan oleh RPC tepercaya; role, ID, dan saldo ditentukan server.
+   const created=await sb.rpc('sos_create_my_profile');
    if(created.error)throw created.error;
    profile=created.data;
+   if(typeof profile==='string'){try{profile=JSON.parse(profile)}catch(_){throw new Error('Respons pembuatan profil tidak valid.')}}
+   if(!profile||!profile.user_id)throw new Error('Server tidak mengembalikan profil akun.');
   }
   const safePublicName=maskEmailBasedName(profile.display_name,user.email);
   if(safePublicName&&safePublicName!==profile.display_name){const maskedUpdate=await sb.from('sos_profiles').update({display_name:safePublicName,updated_at:new Date().toISOString()}).eq('user_id',user.id);if(maskedUpdate.error)throw maskedUpdate.error;profile.display_name=safePublicName;}
   accountState.id=String(profile.player_id||'').replace(/^#/,'').toUpperCase();
-  accountState.role=(String(profile.player_id||'').toUpperCase()==='000000'||(user.email||'').toLowerCase()===DEV_EMAIL)?'developer':(profile.account_role||'player');
+  accountState.role=(user.email||'').trim().toLowerCase()===String(DEV_EMAIL||'').trim().toLowerCase()?'developer':(['subdeveloper','admin','officer','player'].includes(String(profile.account_role||'').toLowerCase())?String(profile.account_role).toLowerCase():'player');
   accountState.coins=Number(profile.coins||0);accountState.diamonds=Number(profile.diamonds||0);accountState.regularVouchers=Number(profile.regular_vouchers||0);accountState.goldenVouchers=Number(profile.golden_vouchers||0);accountState.level=Number(profile.level||1);accountState.exp=Number(profile.exp||0);accountState.nickname=profile.display_name||accountState.nickname||'';
   await loadCloudInventory();
   saveAccountState();renderAccountState();
