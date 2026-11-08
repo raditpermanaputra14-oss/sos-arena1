@@ -1575,8 +1575,8 @@ if(mode==='online'&&previousBoard.length===board.length){const changed=[];for(le
 function currentPlayer(){if(mode==='online'){let id=room?.players_order?.[currentTurn];return players.find(p=>p.user_id===id)||{user_id:id,nickname:'Pemain'}}return players[currentTurn]||players[0]}
 function turnName(){let p=currentPlayer();return mode==='online'&&p.user_id===user?.id?'Kamu':p.nickname}
 function updateTurnUI(){let p=currentPlayer(),mine=(mode==='offline'||p.user_id===user?.id)&&!(mode==='online'&&onlineSurrendered().includes(user?.id));const boardEl=$('board');if(boardEl)boardEl.classList.toggle('my-turn',mine);if(boardEl)boardEl.classList.toggle('wait-turn',!mine);$('turnTitle').textContent='Giliran: '+turnName();$('turnSub').textContent=mine?'Pilih S atau O, lalu pilih kotak.':'Menunggu '+p.nickname+' bermain…';$('gameHint').textContent=mine?'Klik kotak kosong untuk menaruh huruf '+chosen+'.':mode==='online'?'Giliran pemain lain.':'Giliran pemain lain.';$('chooseS').disabled=!mine;$('chooseO').disabled=!mine;$('chooseS').classList.toggle('selected-letter',mine&&chosen==='S');$('chooseO').classList.toggle('selected-letter',mine&&chosen==='O');document.querySelectorAll('.cell').forEach(c=>c.disabled=!!c.dataset.filled||!mine||moveLock);if(mode==='online'){let start=room?.turn_started_at?new Date(room.turn_started_at).getTime():Date.now();turnDeadline=start+30000;updateTurnTimer()}else $('turnTimer').textContent='∞'}
-$('chooseS').onclick=()=>{chosen='S';if(mode==='online'&&user){const sc={...(scores||{})},map={...(sc.__letter_chances||{})},st=letterChanceState(user.id,sc);st.o=letterChanceMax();map[user.id]=st;sc.__letter_chances=map;scores=sc;room={...room,scores:sc};sb.from('sos_rooms').update({scores:sc}).eq('id',roomId).eq('status','playing').then(r=>{if(r.error)console.warn('Refresh kesempatan O gagal:',r.error.message)});renderScores()}updateTurnUI();$('gameHint').textContent='Huruf dipilih: S'};
-$('chooseO').onclick=()=>{chosen='O';if(mode==='online'&&user){const sc={...(scores||{})},map={...(sc.__letter_chances||{})},st=letterChanceState(user.id,sc);st.s=letterChanceMax();map[user.id]=st;sc.__letter_chances=map;sc.__letter_chances=map;scores=sc;room={...room,scores:sc};sb.from('sos_rooms').update({scores:sc}).eq('id',roomId).eq('status','playing').then(r=>{if(r.error)console.warn('Refresh kesempatan S gagal:',r.error.message)});renderScores()}updateTurnUI();$('gameHint').textContent='Huruf dipilih: O'};
+$('chooseS').onclick=()=>{chosen='S';updateTurnUI();$('gameHint').textContent='Huruf dipilih: S'};
+$('chooseO').onclick=()=>{chosen='O';updateTurnUI();$('gameHint').textContent='Huruf dipilih: O'};
 function renderBoard(){let b=$('board');b.style.setProperty('--board-size',size);b.style.gridTemplateColumns=`repeat(${size},minmax(0,1fr))`;b.style.gridTemplateRows=`repeat(${size},minmax(0,1fr))`;b.style.width='100%';b.style.height='100%';b.innerHTML='';$('lines').innerHTML='';board=board||Array(size*size).fill(null);for(let i=0;i<size*size;i++){let btn=document.createElement('button');btn.className='cell'+(board[i]?' '+board[i].toLowerCase():'');btn.dataset.filled=board[i]?'1':'';if(board[i]){btn.textContent=board[i]}else{let number=document.createElement('span');number.className='cell-number';number.textContent=String(i+1);btn.append(number)}btn.setAttribute('aria-label','Petak nomor '+(i+1)+(board[i]?' berisi '+board[i]:''));btn.onclick=()=>makeMove(i);b.append(btn)}drawLines();updateTurnUI()}
 function heartsMax(){return Math.max(3,Math.min(7,Number(size||7)-2))}
 function heartsFor(id,src=scores){const map=src?.__hearts||{};const n=Number(map[id]);return Number.isFinite(n)&&n>=0?Math.min(heartsMax(),n):heartsMax()}
@@ -1693,7 +1693,9 @@ async function submitOnlineMove(i,p){
   const actorChance=letterChanceState(user.id,adjustedScores);
   const chanceMax=letterChanceMax();
   const otherLetter=letter==='S'?'o':'s';
-  // Berganti huruf: jatah huruf sebelumnya pulih. SOS memulihkan keduanya.
+  // Kesempatan hanya pulih setelah huruf berbeda benar-benar berhasil ditulis di papan.
+  // Menekan tombol S/O untuk mengganti pilihan tidak memulihkan kesempatan.
+  // SOS memulihkan kedua huruf.
   if(found.length){actorChance.s=chanceMax;actorChance.o=chanceMax;}
   else{
    if(actorChance.last && actorChance.last!==letter)actorChance[otherLetter]=chanceMax;
