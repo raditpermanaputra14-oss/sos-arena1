@@ -511,6 +511,16 @@ body.woman-theme #lobbyInboxBadge{background:#00e5ff!important;box-shadow:0 0 9p
 .role-subdeveloper{color:#8ffaff;background:#0b829b33;border-color:#65f4ff;box-shadow:0 0 10px #65f4ff55}
 .role-admin{color:#d8a8ff;background:#783bb533;border-color:#b57bff;box-shadow:0 0 9px #b57bff44}
 .role-officer{color:#ffb4d5;background:#a62d6733;border-color:#ff82bc;box-shadow:0 0 8px #ff82bc33}
+/* Ranking: keep long role badges visible without changing the overall row layout. */
+#levelLeaderboardList .leaderboard-row{grid-template-columns:32px minmax(0,1fr) auto auto;align-items:center;}
+#levelLeaderboardList .leaderboard-row>div:nth-child(2){min-width:0;overflow:visible;}
+#levelLeaderboardList .leaderboard-name{display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-width:0;overflow:visible;text-overflow:clip;white-space:normal;line-height:1.35;}
+#levelLeaderboardList .leaderboard-name .role-title{flex:0 0 auto;margin:2px 0 0;padding:3px 7px;font-size:9px;letter-spacing:.2px;max-width:100%;}
+@media(max-width:420px){
+ #levelLeaderboardList .leaderboard-row{grid-template-columns:27px minmax(0,1fr) auto auto;gap:5px;padding:8px 5px;}
+ #levelLeaderboardList .leaderboard-level{font-size:12px;}
+ #levelLeaderboardList .leaderboard-name .role-title{font-size:8px;padding:3px 6px;}
+}
 </style>
 
 <style id="sos-arena-final-layout-fixes">
