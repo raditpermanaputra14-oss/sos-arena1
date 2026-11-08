@@ -1715,7 +1715,11 @@ async function submitOnlineMove(i,p){
   // this client reconciliation applies the card rules and persists the resulting shared state.
   // Gunakan skor dari hasil RPC terbaru, bukan snapshot room sebelum langkah.
   // Snapshot lama dapat menimpa skor yang baru saja diperbarui server/realtime.
-  const oldRelic=room?.relic_state?{...room.relic_state}:(priorRoom?.relic_state?{...priorRoom.relic_state}:null);
+  // Hasil RPC adalah sumber terbaru. Jika relic_state memang null dari server,
+  // jangan hidupkan kembali kartu lama dari snapshot sebelum langkah.
+  const oldRelic=(room&&Object.prototype.hasOwnProperty.call(room,'relic_state'))
+    ? (room.relic_state?{...room.relic_state}:null)
+    : (priorRoom?.relic_state?{...priorRoom.relic_state}:null);
   let relic=oldRelic, adjustedScores={...(room?.scores||priorRoom?.scores||{})};
   const chanceMap={...(adjustedScores.__letter_chances||{})};
   const actorChance=letterChanceState(user.id,adjustedScores);
@@ -1776,9 +1780,14 @@ async function submitOnlineMove(i,p){
       const targetId=candidates.sort((a,b)=>(Number(adjustedScores[scoreKeyFor(b)])||0)-(Number(adjustedScores[scoreKeyFor(a)])||0))[0];
       if(targetId){const targetKey=scoreKeyFor(targetId);adjustedScores[targetKey]=(Number(adjustedScores[targetKey])||0)-1;}
     }
-    if(relic?.owner===actorId&&['multiple','tactic'].includes(relic.type))relic=null;
-    // Relik K stays active through SOS, combo, and multipel; it burns out on a non-SOS move.
+    // Kartu taktik ID 1–25 adalah sekali pakai: efek bonus hanya berlaku
+    // pada satu langkah yang benar-benar menghasilkan SOS, lalu langsung habis.
+    // Kombo (28), Multipel (29), dan Relik K (30) bukan kartu sekali pakai.
+    const isOneShotTactic=relic?.type==='tactic'&&Number(relic.itemId)>=1&&Number(relic.itemId)<=25;
+    if(isOneShotTactic&&relic.owner===actorId)relic=null;
+    // Relik K tetap aktif melewati SOS; Kombo/Multipel mengikuti aturan khususnya.
   } else if(activeK || (relic?.owner===actorId&&['combo','multiple'].includes(relic.type))) relic=null;
+  // Taktik sekali pakai tetap menunggu sampai pemiliknya berhasil membuat SOS.
   let nextTurn=Number(room.current_turn)||0;
   const nextRoomPatch={scores:adjustedScores,relic_state:relic};
   if(Array.isArray(room.surrendered_players))nextRoomPatch.surrendered_players=room.surrendered_players;
