@@ -1877,6 +1877,19 @@ setInterval(()=>{if(room){updateExpiry();if(mode==='online'&&screen==='game')upd
    in this browser as a fallback; shared online economy/social actions require the SQL backend. */
 const DEV_EMAIL='raditpermanaputra14@gmail.com';
 const accountState={id:'',level:1,exp:0,coins:0,diamonds:0,nickname:'',bio:'',friends:[],requests:[],inventory:[],equipped:null,lastAdWeek:'',inbox:[]};
+// Helper role harus berada di scope global karena loadAccountState() dan
+// renderAccountState() dipanggil sebelum blok statistik yang memiliki IIFE.
+function currentAccountRole(){
+ const emailDev=!!user&&(user.email||'').trim().toLowerCase()===String(DEV_EMAIL||'').trim().toLowerCase();
+ if(emailDev)return 'developer';
+ const role=String(accountState?.role||'player').toLowerCase();
+ return ['developer','subdeveloper','admin','officer','player'].includes(role)?role:'player';
+}
+function isDeveloperAccount(){return currentAccountRole()==='developer'}
+function isStaffAccount(){return ['developer','subdeveloper','admin','officer'].includes(currentAccountRole())}
+function roleTitle(role){return ({developer:'✦ DEVELOPER',subdeveloper:'◆ DEVELOPER BAGIAN',admin:'★ ADMIN',officer:'● OFFICER'})[role]||''}
+function roleBadgeHtml(role){const label=roleTitle(role);return label?` <span class="role-title role-${role}">${label}</span>`:''}
+
 // Lindungi nama publik yang sama persis dengan bagian sebelum @ pada email akun.
 function maskEmailBasedName(name,email){const n=String(name||'').trim(),local=String(email||'').split('@')[0].trim();if(!n||!local||!String(email||'').includes('@')||n.toLocaleLowerCase()!==local.toLocaleLowerCase())return n;return local.slice(0,5)+'xxxxx'}
 function accountKey(){return 'sosArenaAccount_v1_'+(user?.id||'guest')}
