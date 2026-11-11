@@ -411,6 +411,7 @@ body.woman-theme #gameScreen .board.my-turn .cell{
   box-shadow:none!important;
 }
 
+
 </style>
 <style id="sos-arena-relic-phoenix-and-hud-fix">
 /* Relik K: Phoenix aura — tanpa garis/strip, gelap dengan warna pelangi yang mengalir lembut selama 10 detik. */
@@ -3029,4 +3030,93 @@ body.woman-theme .new-guide-callout{border-color:#ff9bc9!important;background:li
 body.woman-theme .new-guide-explain-item[data-guide-point="1"]{border-color:#ff78bd88!important;background:#ff78bd12!important}
 body.woman-theme .new-guide-footer{border-top-color:#ff78bd35!important}
 @media(max-width:390px){.new-guide-game-top{padding:10px 38px 10px 9px!important}.new-guide-turn-indicator{font-size:8px}}
+</style>
+<style>
+/* WOMAN THEME: recolor every blue surface and accent in the how-to-play example */
+body.woman-theme .new-guide-game-top,
+body.woman-theme .new-guide-timer,
+body.woman-theme .new-guide-scorebar span,
+body.woman-theme .new-guide-status-box,
+body.woman-theme .new-guide-board,
+body.woman-theme .new-guide-board span,
+body.woman-theme .new-guide-letters span,
+body.woman-theme .new-guide-announcer,
+body.woman-theme .new-guide-chat,
+body.woman-theme .new-guide-card-area,
+body.woman-theme .new-guide-card-area span{
+  background-color:#281329!important;
+  border-color:#b94f8d!important;
+  color:#ffe8f4!important;
+}
+body.woman-theme .new-guide-game-top{background:linear-gradient(120deg,#40152f,#2b1536)!important}
+body.woman-theme .new-guide-timer{background:linear-gradient(145deg,#3b1838,#25132e)!important}
+body.woman-theme .new-guide-timer small,
+body.woman-theme .new-guide-game-top small,
+body.woman-theme .new-guide-letters small,
+body.woman-theme .new-guide-announcer small,
+body.woman-theme .new-guide-chat small,
+body.woman-theme .new-guide-card-area small{color:#e6b8d3!important}
+body.woman-theme .new-guide-eyebrow,
+body.woman-theme .new-guide-status-box b{color:#ff8fc9!important}
+body.woman-theme .new-guide-timer b,
+body.woman-theme .new-guide-announcer strong,
+body.woman-theme .new-guide-card-area b{color:#ffd0e8!important}
+body.woman-theme .new-guide-scorebar span.active{
+  background:linear-gradient(135deg,#8e326b,#56264f)!important;
+  border-color:#ff8fc9!important;color:#fff!important;
+}
+body.woman-theme .new-guide-board{
+  background:#321936!important;border-color:#d46aa6!important;
+  box-shadow:0 0 14px #ff78bd20!important;
+}
+body.woman-theme .new-guide-board span{
+  background:#24132d!important;border-color:#8e4c7c!important;
+  color:#ff9bd6!important;
+}
+body.woman-theme .new-guide-board span:nth-child(2),
+body.woman-theme .new-guide-board span:nth-child(8),
+body.woman-theme .new-guide-board span:nth-child(19){color:#e7a8ff!important}
+body.woman-theme .new-guide-board span:nth-child(3),
+body.woman-theme .new-guide-board span:nth-child(4),
+body.woman-theme .new-guide-board span:nth-child(5),
+body.woman-theme .new-guide-board span:nth-child(9),
+body.woman-theme .new-guide-board span:nth-child(10),
+body.woman-theme .new-guide-board span:nth-child(11),
+body.woman-theme .new-guide-board span:nth-child(14),
+body.woman-theme .new-guide-board span:nth-child(15),
+body.woman-theme .new-guide-board span:nth-child(17),
+body.woman-theme .new-guide-board span:nth-child(18),
+body.woman-theme .new-guide-board span:nth-child(20),
+body.woman-theme .new-guide-board span:nth-child(n+21){color:#bd91b8!important}
+body.woman-theme .new-guide-letters span.chosen{
+  background:linear-gradient(135deg,#9d376d,#633c88)!important;
+  border-color:#ff9bc9!important;color:#fff!important;
+}
+body.woman-theme .new-guide-card-area{
+  background:linear-gradient(120deg,#32152d,#25132d)!important;
+  border-color:#d46aa6!important;color:#ffe8f4!important;
+}
+body.woman-theme .new-guide-card-area span{
+  background:#48203f!important;border-color:#c45c99!important;color:#ffe8f4!important;
+}
+body.woman-theme .new-guide-announcer,
+body.woman-theme .new-guide-chat{
+  background:linear-gradient(145deg,#28172f,#21152d)!important;
+  border-color:#9c5688!important;
+}
+body.woman-theme .new-guide-callout.active{
+  background:linear-gradient(135deg,#ff9bd6,#bd69df)!important;
+  box-shadow:0 0 0 5px #ff78bd35!important;
+}
+/* Replace cyan accents in the actual game controls too, without changing turn logic. */
+body.woman-theme #chooseS,
+body.woman-theme #chooseO{background:linear-gradient(135deg,#35152f,#25132d)!important;border-color:#b94f8d!important;color:#ffe8f4!important}
+body.woman-theme #chooseS.selected-letter,
+body.woman-theme #chooseO.selected-letter{background:linear-gradient(135deg,#e85c9b,#a94bd0)!important;border-color:#ffacd8!important;color:#fff!important;box-shadow:0 0 16px #e85c9b66!important}
+body.woman-theme .cell.s,
+body.woman-theme .cell.o{color:#ff9bd6!important;text-shadow:0 0 12px #e85c9b77!important}
+body.woman-theme .cell{border-color:#9c5688!important;background:#24132d!important}
+body.woman-theme .board-wrap{border-color:#b7659d!important;background:#301833!important}
+
+
 </style>
