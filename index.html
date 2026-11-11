@@ -809,6 +809,14 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
 .new-guide-device>.new-guide-callout.c4{display:none!important}
 </style>
 
+
+<style id="new-guide-button-tap-fix">
+#lobbyScreen .new-guide-inline-action{position:relative!important;z-index:30!important;pointer-events:auto!important}
+#lobbyScreen .new-guide-open{position:relative!important;z-index:31!important;pointer-events:auto!important;touch-action:manipulation!important;cursor:pointer!important}
+#newPlayerGuideModal{z-index:99999!important}
+#newPlayerGuideModal.open{display:flex!important;pointer-events:auto!important}
+#newPlayerGuideModal .new-guide-dialog,#newPlayerGuideModal .new-guide-backdrop{pointer-events:auto!important}
+</style>
 </head>
 <body>
 <!-- Background music: a single manager switches tracks so they never overlap. -->
@@ -2899,7 +2907,8 @@ const body=el('featureModalBody');if(body){const obs=new MutationObserver(()=>{i
   const offline=mode==='offline',team=mode==='team';
   $('newGuideModeLabel').textContent=offline?'MODE OFFLINE':team?'ONLINE TIM':'ONLINE SOLO';
   $('newGuideTurn').textContent=team?'Giliran: Tim S · Pemain 1':'Giliran: Pemain 1';
-  $('newGuideTurnSub').textContent=offline?'Pemain aktif memilih huruf dan kotak.':team?'Giliran berjalan bergantian antaranggota Tim S dan Tim O.':'Pemain mendapat giliran secara bergantian di room.';\n  $('newGuideTurnIndicator').textContent=offline?'● GILIRAN PEMAIN 1':team?'● GILIRAN TIM S':'● GILIRAN KAMU (CONTOH)';
+  $('newGuideTurnSub').textContent=offline?'Pemain aktif memilih huruf dan kotak.':team?'Giliran berjalan bergantian antaranggota Tim S dan Tim O.':'Pemain mendapat giliran secara bergantian di room.';
+  $('newGuideTurnIndicator').textContent=offline?'● GILIRAN PEMAIN 1':team?'● GILIRAN TIM S':'● GILIRAN KAMU (CONTOH)';
   $('newGuideTimer').querySelector('b').textContent=offline?'∞':'30';
   $('newGuideTimer').style.opacity=offline?'.55':'1';
   $('newGuideScores').innerHTML=team?'<span class="active">TIM S <b>4</b></span><span>TIM O <b>3</b></span>':offline?'<span class="active">P1 <b>2</b></span><span>P2 <b>1</b></span>':'<span class="active">KAMU <b>2</b></span><span>LAWAN <b>1</b></span>';
