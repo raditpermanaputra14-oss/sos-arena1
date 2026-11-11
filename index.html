@@ -760,6 +760,16 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
 <div class="currency-chip diamonds"><span class="currency-icon">💎</span><span class="currency-value" id="lobbyDiamondBalance">0</span></div>
 <button aria-label="Tukar koin dan klaim berlian" id="lobbyCurrencyPlus" title="Tukar koin / klaim berlian" type="button">＋</button>
 </div><div class="hero"><div class="eyebrow">Welcome to the arena</div><h1>LOBI GAME</h1><p>Bentuk SOS secara horizontal, vertikal, atau diagonal. Setiap garis SOS memberi 1 poin; jika kamu mendapat poin, giliranmu berlanjut.</p></div>
+<section class="panel" id="newPlayerGuideCard" aria-labelledby="newPlayerGuideHeading">
+  <div class="new-guide-card-row">
+    <div>
+      <div class="new-guide-kicker">PANDUAN PEMAIN BARU</div>
+      <h2 id="newPlayerGuideHeading">🧭 Kenali Tampilan Game</h2>
+      <p class="muted">Lihat contoh tampilan saat bermain dalam mode Offline, Online Solo, dan Online Tim. Setiap bagian diberi penunjuk dan penjelasan.</p>
+    </div>
+    <button class="new-guide-open" id="openNewPlayerGuide" type="button">BUKA PENJELASAN <span aria-hidden="true">➜</span></button>
+  </div>
+</section>
 <div class="grid">
 <div class="panel"><h2>🎮 Mode Offline</h2><p class="muted">Main bergantian di perangkat yang sama. Pilih jumlah pemain dan ukuran papan.</p><div class="stack"><div><label>Jumlah pemain</label><select id="offlinePlayers"><option value="2">2 pemain</option><option value="3">3 pemain</option><option value="4">4 pemain</option><option value="5">5 pemain</option><option value="6">6 pemain</option></select></div><div><label>Ukuran papan</label><select id="offlineSize"><option value="5">5 × 5</option><option value="6">6 × 6</option><option selected="" value="7">7 × 7</option><option value="8">8 × 8</option><option value="9">9 × 9</option></select></div><div class="stack" id="offlineNames"></div><button class="full" id="startOffline">MULAI OFFLINE</button></div></div>
 <div class="panel"><h2>🌐 Mode Online</h2><p class="muted">Isi nickname terlebih dahulu untuk membuat room atau bergabung dengan kode 6 karakter. Kode room berlaku 5 menit sejak dibuat.</p><div class="stack"><div><label>Nickname game</label><input id="nickname" maxlength="18" placeholder="Contoh: SOSMaster" required=""/></div><div><label>Mode permainan untuk room baru</label><div id="onlineModeChoices" role="group" aria-label="Pilih mode online"><button type="button" data-online-mode="solo" aria-pressed="true"><span class="mode-name">👤 SOLO</span><span class="mode-desc">Aturan online biasa</span></button><button type="button" data-online-mode="team" aria-pressed="false"><span class="mode-name">🛡️ TIM S vs TIM O</span><span class="mode-desc">5 kursi per tim</span></button></div><input id="onlineMode" type="hidden" value="solo"/><p id="onlineModeNote" class="muted">Mode solo menggunakan aturan online seperti biasa.</p></div><div><label>Ukuran papan</label><select id="onlineSize"><option value="5">5 × 5</option><option value="6">6 × 6</option><option selected="" value="7">7 × 7</option><option value="8">8 × 8</option><option value="9">9 × 9</option></select></div><button class="full" id="createRoom">＋ BUAT ROOM</button><div><label>Kode room</label><input id="joinCode" maxlength="6" placeholder="A1B2C3" style="text-transform:uppercase"/></div><button class="secondary full" id="joinRoom">GABUNG ROOM</button><div aria-live="polite" class="muted" id="onlineMsg"></div></div></div>
@@ -798,6 +808,68 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
 <div class="panel" id="gameChatPanel"><h3>💬 Chat</h3><div class="chatbox" id="gameChat"></div><form class="row" id="gameChatForm"><input id="gameChatInput" maxlength="400" placeholder="Kirim pesan..." required=""/><button>Kirim</button></form></div>
 </div></div></section>
 </main>
+<div id="newPlayerGuideModal" class="new-guide-modal" aria-hidden="true">
+  <div class="new-guide-backdrop" data-guide-close="1"></div>
+  <section class="new-guide-dialog" role="dialog" aria-modal="true" aria-labelledby="newGuideTitle">
+    <header class="new-guide-header">
+      <div><div class="new-guide-kicker">PANDUAN INTERAKTIF</div><h2 id="newGuideTitle">Mengenal Arena SOS</h2>
+      <p>Pilih mode untuk melihat contoh layar permainan. Tekan nomor penunjuk atau judul bagian untuk membaca fungsinya.</p></div>
+      <button type="button" class="new-guide-close" id="closeNewPlayerGuide" aria-label="Tutup penjelasan">✕</button>
+    </header>
+    <nav class="new-guide-tabs" aria-label="Pilih mode permainan">
+      <button type="button" data-guide-mode="offline" aria-pressed="true">🎮 Offline</button>
+      <button type="button" data-guide-mode="solo" aria-pressed="false">🌐 Online Solo</button>
+      <button type="button" data-guide-mode="team" aria-pressed="false">🛡️ Online Tim</button>
+    </nav>
+    <div class="new-guide-content">
+      <div class="new-guide-visual-wrap">
+        <div class="new-guide-device">
+          <div class="new-guide-game-top">
+            <div><span class="new-guide-eyebrow" id="newGuideModeLabel">MODE OFFLINE</span><strong id="newGuideTurn">Giliran: Pemain 1</strong><small id="newGuideTurnSub">Pilih S atau O lalu kotak kosong.</small></div>
+            <div class="new-guide-timer" id="newGuideTimer"><small>SISA WAKTU</small><b>∞</b></div>
+          </div>
+          <div class="new-guide-scorebar" id="newGuideScores">
+            <span class="active">P1 <b>2</b></span><span>P2 <b>1</b></span>
+          </div>
+          <div class="new-guide-board-area">
+            <div class="new-guide-board" aria-label="Contoh papan SOS">
+              <span>S</span><span>O</span><span>·</span><span>·</span><span>·</span>
+              <span>·</span><span>S</span><span>O</span><span>·</span><span>·</span>
+              <span>·</span><span>·</span><span>S</span><span>·</span><span>·</span>
+              <span>O</span><span>·</span><span>·</span><span>O</span><span>·</span>
+              <span>·</span><span>·</span><span>·</span><span>·</span><span>S</span>
+            </div>
+            <div class="new-guide-letters"><span class="chosen">PILIH S</span><span>PILIH O</span><small>Sentuh kotak kosong untuk menaruh huruf</small></div>
+          </div>
+          <div class="new-guide-bottom-panels">
+            <div class="new-guide-announcer"><b>📣 Announcer</b><strong id="newGuideAnnounce">SOS TERBENTUK!</strong><small id="newGuideAnnounceSub">Poin bertambah dan giliran berlanjut.</small></div>
+            <div class="new-guide-chat" id="newGuideChat"><b>💬 Chat</b><small>Tempat berkomunikasi dengan pemain lain.</small></div>
+          </div>
+          <div class="new-guide-callout c1" data-guide-point="1">1</div>
+          <div class="new-guide-callout c2" data-guide-point="2">2</div>
+          <div class="new-guide-callout c3" data-guide-point="3">3</div>
+          <div class="new-guide-callout c4" data-guide-point="4">4</div>
+          <div class="new-guide-callout c5" data-guide-point="5">5</div>
+          <div class="new-guide-callout c6" data-guide-point="6">6</div>
+        </div>
+        <p class="new-guide-visual-caption">Ilustrasi panduan — tata letak dapat sedikit berbeda mengikuti ukuran layar perangkat.</p>
+      </div>
+      <aside class="new-guide-explain">
+        <h3>Bagian-bagian layar</h3>
+        <div id="newGuideExplanationList">
+          <button type="button" class="new-guide-explain-item selected" data-guide-point="1"><b>1</b><span><strong>Info giliran</strong><small>Menunjukkan siapa yang sedang mendapat giliran dan apa yang perlu dilakukan.</small></span></button>
+          <button type="button" class="new-guide-explain-item" data-guide-point="2"><b>2</b><span><strong>Skor pemain</strong><small>Menampilkan poin yang sudah dikumpulkan setiap pemain.</small></span></button>
+          <button type="button" class="new-guide-explain-item" data-guide-point="3"><b>3</b><span><strong>Papan SOS</strong><small>Area utama untuk memilih kotak kosong dan membentuk garis S-O-S.</small></span></button>
+          <button type="button" class="new-guide-explain-item" data-guide-point="4"><b>4</b><span><strong>Pilihan huruf</strong><small>Pilih huruf S atau O sebelum menyentuh kotak kosong.</small></span></button>
+          <button type="button" class="new-guide-explain-item" data-guide-point="5"><b>5</b><span><strong>Announcer</strong><small>Memberi tahu kejadian penting, seperti SOS terbentuk dan poin bertambah.</small></span></button>
+          <button type="button" class="new-guide-explain-item" data-guide-point="6"><b>6</b><span><strong>Chat / komunikasi</strong><small>Untuk mengirim pesan saat bermain online. Mode offline tidak menggunakan chat room.</small></span></button>
+        </div>
+        <p class="new-guide-mode-note" id="newGuideModeNote">Offline: beberapa pemain bermain bergantian pada satu perangkat. Tidak memerlukan koneksi internet.</p>
+      </aside>
+    </div>
+    <footer class="new-guide-footer"><span id="newGuideStepCount">Bagian 1 dari 6</span><div><button type="button" class="secondary" id="newGuidePrev" disabled>SEBELUMNYA</button><button type="button" id="newGuideNext">BERIKUTNYA</button></div></footer>
+  </section>
+</div>
 <div aria-hidden="true" id="sosSpotlight"><div id="sosSpotlightShade"></div><div id="sosSpotlightTitle"></div></div>
 <div id="sos-theme-lightning" aria-hidden="true"></div>
 <div aria-describedby="gameResultSubtitle" aria-labelledby="gameResultTitle" aria-modal="true" id="gameResultOverlay" role="dialog">
@@ -2683,6 +2755,100 @@ const body=el('featureModalBody');if(body){const obs=new MutationObserver(()=>{i
   <div class="letter-confirm-actions"><button type="button" class="secondary" id="letterChanceCancel">BATAL</button><button type="button" id="letterChanceYes">IYA</button></div>
  </div>
 </div>
+
+
+<style id="new-player-guide-styles">
+#newPlayerGuideCard{margin:18px 0 16px;border-color:#65f4ff66;background:linear-gradient(120deg,#10243b,#211b42 72%,#30204b);box-shadow:0 10px 30px #0003}
+.new-guide-card-row{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.new-guide-card-row h2{margin:5px 0 7px}.new-guide-card-row p{margin:0;max-width:680px}
+.new-guide-kicker{font-size:10px;letter-spacing:2px;font-weight:900;color:#65f4ff}
+.new-guide-open{flex:0 0 auto;border:1px solid #65f4ff99;background:linear-gradient(135deg,#12617b,#593e91);color:white;border-radius:13px;padding:13px 17px;font-weight:900;box-shadow:0 5px 18px #0003}
+.new-guide-modal{display:none;position:fixed;inset:0;z-index:25000;align-items:center;justify-content:center;padding:clamp(8px,2vw,22px)}
+.new-guide-modal.open{display:flex}
+.new-guide-backdrop{position:absolute;inset:0;background:#030612eF;backdrop-filter:blur(8px)}
+.new-guide-dialog{position:relative;z-index:1;width:min(1120px,100%);max-height:min(94dvh,940px);overflow:auto;border:1px solid #65f4ff55;border-radius:22px;background:linear-gradient(145deg,#101a31,#17132d 70%,#211638);box-shadow:0 25px 90px #000b;padding:clamp(13px,2.2vw,24px);color:#f7f8ff}
+.new-guide-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.new-guide-header h2{margin:5px 0;font-size:clamp(20px,3vw,28px)}.new-guide-header p{margin:0;color:#b7c2df;font-size:13px;line-height:1.5;max-width:760px}
+.new-guide-close{width:38px;height:38px;flex:0 0 38px;border-radius:12px;background:#ffffff12;border:1px solid #ffffff35;color:#fff;font-size:19px}
+.new-guide-tabs{display:flex;gap:8px;margin:17px 0;flex-wrap:wrap}.new-guide-tabs button{flex:1;min-width:110px;padding:10px;border:1px solid #ffffff30;background:#ffffff0b;color:#dfe8ff;border-radius:12px;font-weight:850}.new-guide-tabs button[aria-pressed=true]{border-color:#65f4ff;background:#16465d;color:#fff;box-shadow:0 0 0 2px #65f4ff22}
+.new-guide-content{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(280px,.85fr);gap:18px;align-items:start}
+.new-guide-device{position:relative;border:1px solid #6a7fa9;border-radius:17px;padding:12px;background:linear-gradient(145deg,#0c1425,#111c32);box-shadow:inset 0 0 30px #0006;min-height:420px}
+.new-guide-game-top{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:2px 3px 10px;border-bottom:1px solid #ffffff20}.new-guide-game-top>div:first-child{display:grid;gap:3px}.new-guide-eyebrow{font-size:9px;letter-spacing:1.5px;color:#65f4ff;font-weight:900}.new-guide-game-top strong{font-size:clamp(13px,2vw,17px)}.new-guide-game-top small{font-size:10px;color:#aebbd7}
+.new-guide-timer{background:#1d2940;border:1px solid #ffffff20;border-radius:10px;padding:6px 10px;text-align:center;min-width:65px}.new-guide-timer small{display:block;font-size:8px;color:#aebbd7}.new-guide-timer b{font-size:19px;color:#ffdc76}
+.new-guide-scorebar{display:flex;gap:6px;overflow:hidden;padding:9px 0}.new-guide-scorebar span{flex:1;min-width:0;border:1px solid #ffffff22;border-radius:8px;padding:6px;text-align:center;background:#ffffff0b;font-size:10px;color:#dce5fa}.new-guide-scorebar span.active{border-color:#65f4ff;background:#12445a}.new-guide-scorebar b{display:block;font-size:15px}
+.new-guide-board-area{display:flex;align-items:center;gap:12px;justify-content:center;padding:8px 4px}.new-guide-board{width:min(58%,280px);aspect-ratio:1;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:6px;border-radius:10px;background:#253651;border:1px solid #55708f}.new-guide-board span{display:grid;place-items:center;background:#15263a;border:1px solid #3d5c7b;border-radius:5px;color:#65f4ff;font-weight:950;font-size:clamp(13px,2.4vw,20px)}.new-guide-board span:nth-child(2),.new-guide-board span:nth-child(8),.new-guide-board span:nth-child(19){color:#ff9acb}.new-guide-board span:nth-child(3),.new-guide-board span:nth-child(4),.new-guide-board span:nth-child(5),.new-guide-board span:nth-child(9),.new-guide-board span:nth-child(10),.new-guide-board span:nth-child(11),.new-guide-board span:nth-child(14),.new-guide-board span:nth-child(15),.new-guide-board span:nth-child(17),.new-guide-board span:nth-child(18),.new-guide-board span:nth-child(20),.new-guide-board span:nth-child(n+21){color:#7587a7}
+.new-guide-letters{display:grid;gap:7px;min-width:90px}.new-guide-letters span{border:1px solid #ffffff35;background:#ffffff0c;border-radius:8px;padding:7px;text-align:center;font-size:10px;font-weight:900}.new-guide-letters span.chosen{background:#15536a;border-color:#65f4ff}.new-guide-letters small{font-size:9px;color:#aebbd7;line-height:1.4}
+.new-guide-bottom-panels{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:7px}.new-guide-announcer,.new-guide-chat{border:1px solid #ffffff24;border-radius:10px;padding:9px;background:#ffffff09;display:grid;gap:4px;min-height:66px}.new-guide-announcer b,.new-guide-chat b{font-size:10px}.new-guide-announcer strong{font-size:11px;color:#ffdc76}.new-guide-announcer small,.new-guide-chat small{font-size:9px;color:#b7c2df;line-height:1.35}
+.new-guide-callout{position:absolute;width:25px;height:25px;display:grid;place-items:center;border-radius:50%;background:#ffdc76;color:#1a1830;font-size:12px;font-weight:1000;border:2px solid #fff;box-shadow:0 2px 10px #000b;z-index:3;cursor:pointer}
+.new-guide-callout.active{background:#65f4ff;transform:scale(1.18);box-shadow:0 0 0 5px #65f4ff35}
+.new-guide-callout.c1{top:15px;left:12px}.new-guide-callout.c2{top:82px;left:50%;}.new-guide-callout.c3{top:48%;left:20%}.new-guide-callout.c4{top:69%;left:69%}.new-guide-callout.c5{bottom:52px;left:16%}.new-guide-callout.c6{bottom:52px;right:16%}
+.new-guide-visual-caption{margin:8px 2px 0;color:#8f9fbe;font-size:10px;text-align:center}
+.new-guide-explain{border:1px solid #ffffff20;border-radius:14px;padding:12px;background:#ffffff06}.new-guide-explain h3{font-size:14px;margin:0 0 9px}.new-guide-explain-item{display:flex;width:100%;gap:10px;text-align:left;align-items:flex-start;padding:9px 7px;border:0;border-bottom:1px solid #ffffff14;background:transparent;color:#f5f7ff;border-radius:8px}.new-guide-explain-item:last-child{border-bottom:0}.new-guide-explain-item> b{flex:0 0 25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#ffdc76;color:#1a1830;font-size:11px}.new-guide-explain-item span{display:grid;gap:3px}.new-guide-explain-item strong{font-size:11px}.new-guide-explain-item small{font-size:10px;line-height:1.4;color:#aebbd7}.new-guide-explain-item.selected{background:#65f4ff12;outline:1px solid #65f4ff77}.new-guide-explain-item.selected>b{background:#65f4ff}
+.new-guide-mode-note{font-size:11px;line-height:1.5;color:#ffe4a3;background:#ffdc7610;border:1px solid #ffdc7638;padding:10px;border-radius:10px;margin:10px 0 0}
+.new-guide-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding-top:12px;border-top:1px solid #ffffff20;color:#9eacc9;font-size:11px}.new-guide-footer>div{display:flex;gap:8px}.new-guide-footer button{padding:9px 12px;border-radius:10px;font-size:10px;font-weight:900}.new-guide-footer button:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:760px){.new-guide-content{grid-template-columns:1fr}.new-guide-device{min-height:385px}.new-guide-explain{padding:9px}.new-guide-explain-item{padding:8px}.new-guide-dialog{max-height:96dvh}.new-guide-card-row{align-items:flex-start;flex-direction:column}.new-guide-open{width:100%}}
+@media(max-width:390px){.new-guide-device{padding:8px;min-height:350px}.new-guide-board-area{gap:7px}.new-guide-board{gap:3px;padding:4px}.new-guide-letters{min-width:78px}.new-guide-bottom-panels{gap:5px}.new-guide-callout{width:22px;height:22px}.new-guide-footer{align-items:flex-start;flex-direction:column}.new-guide-footer>div{width:100%}.new-guide-footer button{flex:1}}
+</style>
+
+<script id="new-player-guide-script">
+(()=>{
+  const modal=document.getElementById('newPlayerGuideModal');
+  if(!modal) return;
+  const $g=id=>document.getElementById(id);
+  const items=[
+    {title:'Info giliran',text:'Menunjukkan siapa yang sedang mendapat giliran. Pada online, area ini juga memberi petunjuk langkah yang harus dilakukan.',point:'1'},
+    {title:'Skor pemain / tim',text:'Menampilkan poin yang terkumpul. Pada mode tim, skor dihitung untuk masing-masing tim, bukan hanya satu pemain.',point:'2'},
+    {title:'Papan SOS',text:'Inilah area utama permainan. Pilih satu kotak kosong untuk menaruh huruf. Garis SOS dapat terbentuk mendatar, tegak, atau diagonal.',point:'3'},
+    {title:'Pilihan huruf S atau O',text:'Pilih huruf yang ingin diletakkan, lalu pilih kotak kosong pada papan. Setiap garis SOS yang terbentuk bernilai 1 poin.',point:'4'},
+    {title:'Announcer dan riwayat kejadian',text:'Memberi tahu peristiwa penting, misalnya SOS terbentuk, poin bertambah, atau giliran berpindah.',point:'5'},
+    {title:'Chat',text:'Pada mode online, chat digunakan untuk berkomunikasi dengan pemain di room. Pada mode offline, bagian chat tidak digunakan.',point:'6'}
+  ];
+  let active=0,mode='offline';
+  function choosePoint(n){
+    active=Math.max(0,Math.min(items.length-1,n));
+    modal.querySelectorAll('[data-guide-point]').forEach(el=>{
+      const on=Number(el.dataset.guidePoint)===active+1;
+      el.classList.toggle('active',on);
+      el.classList.toggle('selected',on);
+    });
+    $g('newGuideStepCount').textContent=`Bagian ${active+1} dari ${items.length}`;
+    $g('newGuidePrev').disabled=active===0;
+    $g('newGuideNext').textContent=active===items.length-1?'SELESAI':'BERIKUTNYA';
+  }
+  function setMode(next){
+    mode=next;
+    modal.querySelectorAll('[data-guide-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.guideMode===mode)));
+    const solo=mode==='solo',team=mode==='team';
+    $g('newGuideModeLabel').textContent=mode==='offline'?'MODE OFFLINE':solo?'ONLINE SOLO':'ONLINE TIM S VS O';
+    $g('newGuideTurn').textContent=team?'Giliran: Tim S · Pemain 1':solo?'Giliran: Pemain 1':'Giliran: Pemain 1';
+    $g('newGuideTurnSub').textContent=team?'Pemain aktif dari tim S memilih huruf dan kotak.':solo?'Tunggu giliranmu, lalu pilih S atau O.':'Pilih S atau O lalu kotak kosong.';
+    $g('newGuideTimer').style.display=mode==='offline'?'none':'block';
+    $g('newGuideTimer').querySelector('b').textContent=mode==='offline'?'∞':'30';
+    $g('newGuideScores').innerHTML=team
+      ?'<span class="active">TIM S <b>4</b></span><span>TIM O <b>3</b></span>'
+      :solo?'<span class="active">KAMU <b>2</b></span><span>LAWAN <b>1</b></span>'
+      :'<span class="active">P1 <b>2</b></span><span>P2 <b>1</b></span>';
+    $g('newGuideAnnounce').textContent=team?'TIM S MENDAPAT POIN!':'SOS TERBENTUK!';
+    $g('newGuideAnnounceSub').textContent=mode==='offline'?'Poin bertambah; giliran pemain yang sama berlanjut.':'Poin bertambah dan status giliran diperbarui.';
+    $g('newGuideChat').style.opacity=mode==='offline'?'.45':'1';
+    $g('newGuideChat').innerHTML=mode==='offline'?'<b>💬 Chat</b><small>Tidak digunakan pada mode offline.</small>':'<b>💬 Chat room</b><small>Kirim pesan kepada pemain di room.</small>';
+    $g('newGuideModeNote').textContent=mode==='offline'
+      ?'Offline: beberapa pemain bermain bergantian pada satu perangkat. Pilih jumlah pemain dan ukuran papan di lobi. Tidak perlu internet.'
+      :solo?'Online Solo: kamu bermain melawan pemain lain dalam satu room. Skor ditampilkan per pemain, ada batas waktu giliran, dan tersedia chat room.'
+      :'Online Tim: pemain dibagi menjadi Tim S dan Tim O. Skor dihitung per tim; pemain bergiliran mengikuti urutan kursi tim. Ada batas waktu giliran dan chat room.';
+    choosePoint(0);
+  }
+  function open(){modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';setMode('offline');$g('closeNewPlayerGuide').focus();}
+  function close(){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.style.overflow='';$g('openNewPlayerGuide')?.focus();}
+  $g('openNewPlayerGuide')?.addEventListener('click',open);
+  $g('closeNewPlayerGuide')?.addEventListener('click',close);
+  modal.querySelector('.new-guide-backdrop')?.addEventListener('click',close);
+  modal.querySelectorAll('[data-guide-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.guideMode)));
+  modal.querySelectorAll('[data-guide-point]').forEach(el=>el.addEventListener('click',()=>choosePoint(Number(el.dataset.guidePoint)-1)));
+  $g('newGuidePrev').addEventListener('click',()=>choosePoint(active-1));
+  $g('newGuideNext').addEventListener('click',()=>active===items.length-1?close():choosePoint(active+1));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))close();});
+})();
+</script>
 
 </body></html>
 <!-- v18: tombol Wewenang Developer disembunyikan paksa untuk akun non-developer; akun developer tetap dapat melihatnya. -->
