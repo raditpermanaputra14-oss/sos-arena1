@@ -1157,9 +1157,19 @@ async function surrenderOnlineGame(){
  if(!confirm('Menyerah? Dalam mode tim, tim baru kalah jika semua anggota tim itu menyerah.'))return;
  const surrendered=[...onlineSurrendered(),user.id],order=room.players_order||players.map(p=>p.user_id),activeAfter=order.filter(id=>!surrendered.includes(id));
  let next=Number(room.current_turn)||0;if(order[next]===user.id){for(let n=1;n<=order.length;n++){const candidate=(next+n)%order.length;if(!surrendered.includes(order[candidate])){next=candidate;break}}}
- const patch={surrendered_players:surrendered,current_turn:next,turn_started_at:new Date().toISOString()};let finished=activeAfter.length<=1;
- if(isTeamRoom()){const side=playerTeam(players.find(p=>p.user_id===user.id));const activeS=teamMembers('S').filter(p=>!surrendered.includes(p.user_id));const activeO=teamMembers('O').filter(p=>!surrendered.includes(p.user_id));if((side==='S'&&activeS.length===0)||(side==='O'&&activeO.length===0)){finished=true;patch.status='finished';patch.result_reason='team_surrender';patch.winning_team=side==='S'?'O':'S'}else finished=false}
- if(finished&&!patch.status){patch.status='finished';patch.result_reason=activeAfter.length===1?'last_player_standing':'all_surrendered'}
+ const patch={surrendered_players:surrendered,current_turn:next,turn_started_at:new Date().toISOString()};let finished=false;
+ if(isTeamRoom()){
+  const teamOf=id=>playerTeam(players.find(p=>p.user_id===id));
+  const activeS=order.filter(id=>!surrendered.includes(id)&&teamOf(id)==='S');
+  const activeO=order.filter(id=>!surrendered.includes(id)&&teamOf(id)==='O');
+  // Elimination is based on remaining players, never on the teams' SOS scores.
+  if(!activeS.length||!activeO.length){
+   finished=true;patch.status='finished';patch.result_reason='team_surrender';
+   patch.winning_team=activeS.length&&!activeO.length?'S':activeO.length&&!activeS.length?'O':null;
+  }
+ }else if(activeAfter.length<=1){
+  finished=true;patch.status='finished';patch.result_reason=activeAfter.length===1?'last_player_standing':'all_surrendered';
+ }
  try{const r=await sb.from('sos_rooms').update(patch).eq('id',roomId).eq('status','playing').select('*').maybeSingle();if(r.error)throw r.error;if(!r.data)throw new Error('Room sudah berubah.');room=r.data;syncFromRoom(room);announce('MENYERAH',(players.find(p=>p.user_id===user.id)?.nickname||'Pemain')+' menyerah.',true);if(room.status==='finished')finishGame()}catch(e){alert('Gagal menyerah: '+(e?.message||String(e)))}
 }
 async function requestDrawOnline(){
@@ -1872,7 +1882,30 @@ function finishGame(){
  gameFinished=true;$('surrenderGameBtn').style.display='none';$('drawGameBtn').style.display='none';
  const surrendered=onlineSurrendered();
  const eligible=players.filter(p=>mode!=='online'||!surrendered.includes(p.user_id));
- if(mode==='online'&&isTeamRoom()){const ss=Number(scores.TEAM_S)||0,oo=Number(scores.TEAM_O)||0,my=playerTeam(players.find(p=>p.user_id===user?.id));let title;if(room?.result_reason==='agreed_draw'||room?.result_reason==='team_draw')title='DRAW';else if(room?.result_reason==='team_surrender'&&room?.winning_team)title=my===room.winning_team?'VICTORY':'DEFEAT';else title=ss===oo?'DRAW':((ss>oo)===(my==='S')?'VICTORY':'DEFEAT');const sub=title==='DRAW'?'Kedua tim seri. Skor Tim S '+ss+' — Tim O '+oo+'.':title==='VICTORY'?'Tim '+my+' menang! Skor Tim S '+ss+' — Tim O '+oo+'.':'Tim '+my+' kalah. Skor Tim S '+ss+' — Tim O '+oo+'.';if(board.every(Boolean)){recordMissionEvent('online_full');if(title==='VICTORY')recordMissionEvent('online_win')}finalResultTitle=title;rewardPromise=awardOnlineMatchRewards(title);clearResultTimers();closeGameResult();announce(title+'!',sub,true);$('turnTimer').textContent='SELESAI';$('backLobby').style.display='none';document.querySelectorAll('.cell').forEach(c=>c.disabled=true);$('gameResultSubtitle').textContent=sub;buildResultLetters(title);const ov=$('gameResultOverlay');ov.classList.remove('complete','result-victory','result-defeat','result-draw');ov.classList.add('active','result-'+title.toLowerCase());resultStartedAt=Date.now();resultTimers.push(setTimeout(()=>ov.classList.add('complete'),10000));return}
+ if(mode==='online'&&isTeamRoom()){
+  const ss=Number(scores.TEAM_S)||0,oo=Number(scores.TEAM_O)||0;
+  const my=playerTeam(players.find(p=>p.user_id===user?.id));
+  const activeS=players.filter(p=>playerTeam(p)==='S'&&!surrendered.includes(p.user_id)).length;
+  const activeO=players.filter(p=>playerTeam(p)==='O'&&!surrendered.includes(p.user_id)).length;
+  let eliminatedWinner=null;
+  if(activeS>0&&activeO===0)eliminatedWinner='S';
+  else if(activeO>0&&activeS===0)eliminatedWinner='O';
+  // For elimination endings, active roster is authoritative; score is used only for a full-board result.
+  const eliminationEnd=room?.result_reason==='team_surrender'||activeS===0||activeO===0;
+  let title;
+  if(room?.result_reason==='agreed_draw'||room?.result_reason==='team_draw')title='DRAW';
+  else if(eliminationEnd){
+   const winningTeam=eliminatedWinner||(['S','O'].includes(room?.winning_team)?room.winning_team:null);
+   title=winningTeam?(my===winningTeam?'VICTORY':'DEFEAT'):'DRAW';
+  }else title=ss===oo?'DRAW':((ss>oo)===(my==='S')?'VICTORY':'DEFEAT');
+  const sub=title==='DRAW'
+   ?(eliminationEnd?'Kedua tim tidak memiliki pemain yang bertahan. Pertandingan berakhir seri.':'Kedua tim seri. Skor Tim S '+ss+' — Tim O '+oo+'.')
+   :title==='VICTORY'
+    ?(eliminationEnd?'Seluruh pemain tim lawan menyerah atau kehabisan nyawa. Tim '+my+' menang!':'Tim '+my+' menang! Skor Tim S '+ss+' — Tim O '+oo+'.')
+    :(eliminationEnd?'Seluruh pemain tim kamu menyerah atau kehabisan nyawa. Tim '+my+' kalah.':'Tim '+my+' kalah. Skor Tim S '+ss+' — Tim O '+oo+'.');
+  if(board.every(Boolean)&&!eliminationEnd){recordMissionEvent('online_full');if(title==='VICTORY')recordMissionEvent('online_win')}
+  finalResultTitle=title;rewardPromise=awardOnlineMatchRewards(title);clearResultTimers();closeGameResult();announce(title+'!',sub,true);$('turnTimer').textContent='SELESAI';$('backLobby').style.display='none';document.querySelectorAll('.cell').forEach(c=>c.disabled=true);$('gameResultSubtitle').textContent=sub;buildResultLetters(title);const ov=$('gameResultOverlay');ov.classList.remove('complete','result-victory','result-defeat','result-draw');ov.classList.add('active','result-'+title.toLowerCase());resultStartedAt=Date.now();resultTimers.push(setTimeout(()=>ov.classList.add('complete'),10000));return
+ }
  const max=Math.max(0,...eligible.map(p=>scores[mode==='online'?p.user_id:p.id]||0));
  const winners=eligible.filter(p=>(scores[mode==='online'?p.user_id:p.id]||0)===max);
  const tied=winners.length>1;
