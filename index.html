@@ -788,6 +788,27 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
 }
 </style>
 
+
+<style id="new-guide-status-marker-anchor-css">
+.new-guide-status-box{position:relative;overflow:visible;padding-right:30px!important}
+.new-guide-status-box .new-guide-callout{
+  position:absolute!important;
+  top:-9px!important;
+  right:-8px!important;
+  left:auto!important;
+  bottom:auto!important;
+  width:23px!important;
+  height:23px!important;
+  margin:0!important;
+  transform:none;
+  z-index:8;
+}
+.new-guide-status-box .new-guide-callout.active{transform:scale(1.12)}
+/* Jangan tampilkan penanda nyawa/kesempatan di posisi perkiraan lama. */
+.new-guide-device>.new-guide-callout.c3,
+.new-guide-device>.new-guide-callout.c4{display:none!important}
+</style>
+
 </head>
 <body>
 <!-- Background music: a single manager switches tracks so they never overlap. -->
@@ -2856,6 +2877,11 @@ const body=el('featureModalBody');if(body){const obs=new MutationObserver(()=>{i
 (()=>{
  const modal=document.getElementById('newPlayerGuideModal');if(!modal)return;
  const $=id=>document.getElementById(id);let active=0,mode='offline';
+ // Tempelkan penanda tepat pada kotak fitur yang dijelaskan, bukan pada koordinat layar.
+ const lifeMarker=modal.querySelector('.new-guide-callout.c3');
+ const chanceMarker=modal.querySelector('.new-guide-callout.c4');
+ if(lifeMarker && $('newGuideLives')) $('newGuideLives').appendChild(lifeMarker);
+ if(chanceMarker && $('newGuideChances')) $('newGuideChances').appendChild(chanceMarker);
  const total=8;
  function selectPoint(n){
   active=Math.max(0,Math.min(total-1,n));
