@@ -754,6 +754,40 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
 @media(max-width:390px){.new-guide-online-status{gap:4px}.new-guide-status-box{padding:5px}.new-guide-card-area{gap:4px}.new-guide-callout{width:21px;height:21px}}
 </style>
 
+
+<style id="new-guide-final-layout-css">
+.new-guide-inline-action{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:15px;padding:12px 13px;border:1px solid #65f4ff55;border-radius:13px;background:linear-gradient(110deg,#102b40,#241c40)}
+.new-guide-inline-action>div{display:grid;gap:4px;min-width:0}
+.new-guide-inline-action>div b{font-size:13px;color:#f4f8ff}
+.new-guide-inline-action>div small{font-size:11px;color:#b7c2df;line-height:1.4}
+.new-guide-inline-action .new-guide-open{width:auto;flex:0 0 auto}
+.new-guide-device{position:relative}
+.new-guide-callout{z-index:5;pointer-events:auto}
+.new-guide-callout[hidden]{display:none!important}
+/* Penunjuk ditempatkan tepat di area fitur yang ditandai pada ilustrasi. */
+.new-guide-callout.c1{top:5%;left:4%}
+.new-guide-callout.c2{top:20%;left:48%}
+.new-guide-callout.c3{top:29%;left:4%}
+.new-guide-callout.c4{top:29%;right:4%;left:auto}
+.new-guide-callout.c5{top:54%;left:22%}
+.new-guide-callout.c6{top:57%;right:9%;left:auto}
+.new-guide-callout.c7{top:78%;right:5%;left:auto;bottom:auto}
+.new-guide-callout.c8{top:91%;left:25%;bottom:auto}
+.new-guide-callout.c8.online{left:75%}
+@media(max-width:760px){
+ .new-guide-inline-action{align-items:stretch;flex-direction:column}
+ .new-guide-inline-action .new-guide-open{width:100%}
+ .new-guide-callout.c1{top:5%;left:3%}
+ .new-guide-callout.c2{top:20%;left:48%}
+ .new-guide-callout.c3{top:29%;left:3%}
+ .new-guide-callout.c4{top:29%;right:3%;left:auto}
+ .new-guide-callout.c5{top:54%;left:19%}
+ .new-guide-callout.c6{top:57%;right:5%;left:auto}
+ .new-guide-callout.c7{top:78%;right:3%;left:auto}
+ .new-guide-callout.c8{top:91%;left:22%}
+}
+</style>
+
 </head>
 <body>
 <!-- Background music: a single manager switches tracks so they never overlap. -->
@@ -784,20 +818,14 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
 <div class="currency-chip diamonds"><span class="currency-icon">💎</span><span class="currency-value" id="lobbyDiamondBalance">0</span></div>
 <button aria-label="Tukar koin dan klaim berlian" id="lobbyCurrencyPlus" title="Tukar koin / klaim berlian" type="button">＋</button>
 </div><div class="hero"><div class="eyebrow">Welcome to the arena</div><h1>LOBI GAME</h1><p>Bentuk SOS secara horizontal, vertikal, atau diagonal. Setiap garis SOS memberi 1 poin; jika kamu mendapat poin, giliranmu berlanjut.</p></div>
-<section class="panel new-guide-lobby-panel" id="newPlayerGuideCard" aria-labelledby="newPlayerGuideHeading">
-  <div class="new-guide-card-row">
-    <div class="new-guide-card-copy">
-      <div class="new-guide-kicker">PANDUAN PEMAIN BARU</div>
-      <h2 id="newPlayerGuideHeading">🧭 Tutorial Tampilan Permainan</h2>
-      <p class="muted">Kenali fitur penting di arena SOS. Pilih mode untuk melihat perbedaan tampilannya.</p>
-    </div>
-    <button class="new-guide-open" id="openNewPlayerGuide" type="button">LIHAT TUTORIAL <span aria-hidden="true">➜</span></button>
-  </div>
-</section>
 <div class="grid">
 <div class="panel"><h2>🎮 Mode Offline</h2><p class="muted">Main bergantian di perangkat yang sama. Pilih jumlah pemain dan ukuran papan.</p><div class="stack"><div><label>Jumlah pemain</label><select id="offlinePlayers"><option value="2">2 pemain</option><option value="3">3 pemain</option><option value="4">4 pemain</option><option value="5">5 pemain</option><option value="6">6 pemain</option></select></div><div><label>Ukuran papan</label><select id="offlineSize"><option value="5">5 × 5</option><option value="6">6 × 6</option><option selected="" value="7">7 × 7</option><option value="8">8 × 8</option><option value="9">9 × 9</option></select></div><div class="stack" id="offlineNames"></div><button class="full" id="startOffline">MULAI OFFLINE</button></div></div>
 <div class="panel"><h2>🌐 Mode Online</h2><p class="muted">Isi nickname terlebih dahulu untuk membuat room atau bergabung dengan kode 6 karakter. Kode room berlaku 5 menit sejak dibuat.</p><div class="stack"><div><label>Nickname game</label><input id="nickname" maxlength="18" placeholder="Contoh: SOSMaster" required=""/></div><div><label>Mode permainan untuk room baru</label><div id="onlineModeChoices" role="group" aria-label="Pilih mode online"><button type="button" data-online-mode="solo" aria-pressed="true"><span class="mode-name">👤 SOLO</span><span class="mode-desc">Aturan online biasa</span></button><button type="button" data-online-mode="team" aria-pressed="false"><span class="mode-name">🛡️ TIM S vs TIM O</span><span class="mode-desc">5 kursi per tim</span></button></div><input id="onlineMode" type="hidden" value="solo"/><p id="onlineModeNote" class="muted">Mode solo menggunakan aturan online seperti biasa.</p></div><div><label>Ukuran papan</label><select id="onlineSize"><option value="5">5 × 5</option><option value="6">6 × 6</option><option selected="" value="7">7 × 7</option><option value="8">8 × 8</option><option value="9">9 × 9</option></select></div><button class="full" id="createRoom">＋ BUAT ROOM</button><div><label>Kode room</label><input id="joinCode" maxlength="6" placeholder="A1B2C3" style="text-transform:uppercase"/></div><button class="secondary full" id="joinRoom">GABUNG ROOM</button><div aria-live="polite" class="muted" id="onlineMsg"></div></div></div>
-<div class="panel"><h2>📘 Cara Bermain</h2><div class="rules"><div class="rule"><b>01</b><span>Di setiap giliran, pilih satu kotak kosong lalu letakkan huruf S atau O.</span></div><div class="rule"><b>02</b><span>Setiap kombinasi S-O-S dalam garis lurus bernilai 1 poin, termasuk diagonal.</span></div><div class="rule"><b>03</b><span>Jika satu langkah membuat beberapa SOS, semua dihitung. Pemain mendapat giliran lagi.</span></div><div class="rule"><b>04</b><span>Online: giliran maksimal 30 detik. Jika habis, giliran otomatis berpindah.</span></div><div class="rule"><b>05</b><span>Papan penuh mengakhiri permainan. Skor tertinggi menang.</span></div></div></div>
+<div class="panel"><h2>📘 Cara Bermain</h2><div class="rules"><div class="rule"><b>01</b><span>Di setiap giliran, pilih satu kotak kosong lalu letakkan huruf S atau O.</span></div><div class="rule"><b>02</b><span>Setiap kombinasi S-O-S dalam garis lurus bernilai 1 poin, termasuk diagonal.</span></div><div class="rule"><b>03</b><span>Jika satu langkah membuat beberapa SOS, semua dihitung. Pemain mendapat giliran lagi.</span></div><div class="rule"><b>04</b><span>Online: giliran maksimal 30 detik. Jika habis, giliran otomatis berpindah.</span></div><div class="rule"><b>05</b><span>Papan penuh mengakhiri permainan. Skor tertinggi menang.</span></div>
+<div class="new-guide-inline-action">
+  <div><b>🧭 Pemain baru?</b><small>Buka panduan visual untuk mengenali fitur di arena permainan.</small></div>
+  <button class="new-guide-open" id="openNewPlayerGuide" type="button">LIHAT TUTORIAL <span aria-hidden="true">➜</span></button>
+</div></div></div>
 <nav class="lobby-quick-actions" aria-label="Navigasi fitur lobi">
 <div class="lobby-dock-row">
 <button class="lobby-dock-button" id="lobbyOpenShop" type="button" aria-label="Toko dan inventaris" title="Toko dan inventaris">🛍️</button>
@@ -896,7 +924,7 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
           <button type="button" class="new-guide-explain-item" data-guide-point="5"><b>5</b><span><strong>Papan permainan</strong><small>Tempat meletakkan huruf. Bentuk SOS bisa mendatar, tegak, atau diagonal dan menghasilkan poin.</small></span></button>
           <button type="button" class="new-guide-explain-item" data-guide-point="6"><b>6</b><span><strong>Pilihan huruf S / O</strong><small>Pilih salah satu huruf sebelum memilih kotak kosong di papan.</small></span></button>
           <button type="button" class="new-guide-explain-item" data-guide-point="7"><b>7</b><span><strong>Kartu (online)</strong><small>Kartu yang dimiliki muncul di area ini. Setiap kartu punya efek dan aturan pemakaian sendiri: ada kartu penguat saat giliranmu dan kartu serangan yang dapat digunakan saat giliran lawan. Kartu hanya dapat digunakan saat pertandingan online berlangsung.</small></span></button>
-          <button type="button" class="new-guide-explain-item" data-guide-point="8"><b>8</b><span><strong>Announcer dan chat</strong><small>Announcer memberi kabar tentang SOS, poin, dan kejadian pertandingan. Chat digunakan untuk berkomunikasi di room online; tidak dipakai pada mode offline.</small></span></button>
+          <button type="button" class="new-guide-explain-item" data-guide-point="8"><b>8</b><span><strong>Announcer / chat</strong><small>Announcer memberi kabar tentang SOS, poin, dan kejadian pertandingan. Chat hanya tersedia pada mode online untuk berkomunikasi dengan pemain di room.</small></span></button>
         </div>
         <p class="new-guide-mode-note" id="newGuideModeNote">Offline: bermain bergantian pada satu perangkat. Fitur nyawa, kesempatan huruf online, kartu online, dan chat room tidak digunakan.</p>
       </aside>
@@ -2850,6 +2878,13 @@ const body=el('featureModalBody');if(body){const obs=new MutationObserver(()=>{i
   $('newGuideTimer').style.opacity=offline?'.55':'1';
   $('newGuideScores').innerHTML=team?'<span class="active">TIM S <b>4</b></span><span>TIM O <b>3</b></span>':offline?'<span class="active">P1 <b>2</b></span><span>P2 <b>1</b></span>':'<span class="active">KAMU <b>2</b></span><span>LAWAN <b>1</b></span>';
   $('newGuideOnlineStatus').style.display=offline?'none':'grid';
+  const markerVisibility=offline?[1,2,5,6,8]:[1,2,3,4,5,6,7,8];
+  modal.querySelectorAll('.new-guide-callout').forEach(el=>{
+   const point=Number(el.dataset.guidePoint);
+   el.hidden=!markerVisibility.includes(point);
+   el.classList.toggle('online',!offline&&point===8);
+  });
+
   $('newGuideCards').style.display=offline?'none':'flex';
   $('newGuideChat').style.opacity=offline?'.45':'1';
   $('newGuideChat').innerHTML=offline?'<b>💬 Chat</b><small>Tidak digunakan di mode offline.</small>':'<b>💬 Chat room</b><small>Komunikasi dengan pemain di room.</small>';
