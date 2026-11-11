@@ -1399,8 +1399,30 @@ function isTeamRoom(r=room){return !!r&&String(r.team_mode||'solo').toLowerCase(
 function playerTeam(p){return String(p?.team_side||'').toUpperCase()}
 function teamScoreKey(team){return team==='S'?'TEAM_S':'TEAM_O'}
 function teamMembers(side,list=players){return list.filter(p=>playerTeam(p)===side)}
+// Urutan giliran tim dikunci saat game dimulai: S kursi 1, O kursi 1, S kursi 2, O kursi 2, dst.
+// Setelah players_order tersimpan, perubahan posisi visual tidak mengubah urutan pertandingan.
+function buildTeamTurnOrder(list=players){
+ const valid=list.filter(p=>p&&p.user_id&&['S','O'].includes(playerTeam(p)));
+ const bySide={S:[],O:[]};
+ for(const side of ['S','O']){
+  const members=valid.filter(p=>playerTeam(p)===side),seats=new Set();
+  for(const p of members){const seat=Number(p.team_seat);if(!Number.isInteger(seat)||seat<1||seat>5||seats.has(seat))throw new Error('Kursi Tim '+side+' tidak valid atau terduplikasi. Atur ulang kursi sebelum memulai.');seats.add(seat)}
+  bySide[side]=members.sort((a,b)=>Number(a.team_seat)-Number(b.team_seat)||String(a.user_id).localeCompare(String(b.user_id)));
+ }
+ if(bySide.S.length!==bySide.O.length||bySide.S.length<2||bySide.S.length>5)throw new Error('Susunan tim harus seimbang dari 2v2 sampai 5v5.');
+ const order=[];
+ for(let seat=1;seat<=bySide.S.length;seat++){const s=bySide.S.find(p=>Number(p.team_seat)===seat),o=bySide.O.find(p=>Number(p.team_seat)===seat);if(!s||!o)throw new Error('Kursi '+seat+' harus terisi pada kedua tim.');order.push(s.user_id,o.user_id)}
+ if(order.length!==list.length||new Set(order).size!==order.length)throw new Error('Ada pemain yang belum masuk urutan giliran. Periksa data pemain dan kursi tim.');
+ return order;
+}
 function teamCounts(list=players){return {S:teamMembers('S',list).length,O:teamMembers('O',list).length}}
-function balancedTeamCount(list=players){const c=teamCounts(list);return list.length===c.S+c.O&&list.length<=10&&c.S>=2&&c.S<=5&&c.S===c.O&&list.every(p=>['S','O'].includes(playerTeam(p))&&Number(p.team_seat)>=1&&Number(p.team_seat)<=5)}
+function balancedTeamCount(list=players){
+ const c=teamCounts(list);
+ if(!Array.isArray(list)||list.length>10||c.S<2||c.S>5||c.S!==c.O||list.length!==c.S+c.O)return false;
+ if(!list.every(p=>p?.user_id&&['S','O'].includes(playerTeam(p))&&Number.isInteger(Number(p.team_seat))&&Number(p.team_seat)>=1&&Number(p.team_seat)<=5))return false;
+ for(const side of ['S','O']){const seats=list.filter(p=>playerTeam(p)===side).map(p=>Number(p.team_seat));if(new Set(seats).size!==seats.length)return false;for(let seat=1;seat<=c.S;seat++)if(!seats.includes(seat))return false}
+ return new Set(list.map(p=>p.user_id)).size===list.length;
+}
 async function takeTeamSeat(side,seat){if(!isTeamRoom()||room?.status!=='lobby'||!user)return;try{const r=await sb.rpc('sos_team_take_seat',{p_room_id:roomId,p_team:side,p_seat:seat});if(r.error)throw r.error;await refreshPlayers()}catch(e){alert('Kursi tim gagal diubah: '+(e?.message||String(e)))}}
 function renderTeamSeats(){const el=$('teamSeatPicker');if(!el)return;el.innerHTML='';$('roomModeSummary').textContent=isTeamRoom()?'MODE TIM · S biru vs O pink · pilih kursi sebelum host memulai.':'MODE SOLO · aturan online biasa.';if(!isTeamRoom()){el.style.display='none';return}el.style.display='block';const grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0';for(const side of ['S','O']){const panel=document.createElement('div');panel.style.cssText='border:1px solid '+(side==='S'?'#48cfff':'#ff78bd')+'66;border-radius:12px;padding:8px;background:'+(side==='S'?'#168ec414':'#e85c9b14');const title=document.createElement('b');title.textContent='TIM '+side+' · '+teamMembers(side).length+'/5';title.style.color=side==='S'?'#65e4ff':'#ff8bc8';panel.append(title);for(let n=1;n<=5;n++){const occupant=players.find(p=>playerTeam(p)===side&&Number(p.team_seat)===n);const b=document.createElement('button');b.type='button';b.className='secondary';b.style.cssText='width:100%;margin-top:5px;font-size:12px';b.textContent='KURSI '+n+' · '+(occupant?(occupant.nickname||'Pemain')+(occupant.user_id===user?.id?' (kamu)':''):'Kosong');b.disabled=room?.status!=='lobby'||!!(occupant&&occupant.user_id!==user?.id);b.onclick=()=>takeTeamSeat(side,n);panel.append(b)}grid.append(panel)}el.append(grid);const hint=document.createElement('p');hint.className='muted';hint.textContent='Syarat mulai: 2v2, 3v3, 4v4, atau 5v5. Kursi yang kamu pilih menentukan tim dan giliran.';el.append(hint)}
 // Pembuat kode room enam karakter yang tersedia secara global.
@@ -1523,8 +1545,10 @@ $('roomStart').onclick=async()=>{
   if(!loaded){alert('Gagal membaca pemain. Periksa SELECT RLS tabel sos_room_players.');return}
   if(isTeamRoom()&&!balancedTeamCount(players)){const c=teamCounts();alert('Mode tim hanya bisa dimulai dengan jumlah seimbang 2v2, 3v3, 4v4, atau 5v5. Saat ini Tim S '+c.S+' dan Tim O '+c.O+'.');return}
   if(!isTeamRoom()&&players.length<2){alert('Minimal 2 pemain harus terbaca sebelum game dimulai.');return}
-  let order;if(isTeamRoom()){const n=teamCounts().S;order=[];for(let seat=1;seat<=n;seat++)for(const side of ['S','O']){const player=players.find(p=>p.team_side===side&&Number(p.team_seat)===seat);if(player)order.push(player.user_id)}}else order=players.map(p=>p.user_id).filter(Boolean);
-  if(order.length<2){alert('Data user_id pemain tidak lengkap.');return}
+  let order;
+  try{order=isTeamRoom()?buildTeamTurnOrder(players):players.map(p=>p.user_id).filter(Boolean)}
+  catch(orderError){alert(orderError.message||'Urutan giliran tim tidak valid.');return}
+  if(order.length<2||order.length!==players.length||new Set(order).size!==order.length){alert('Jumlah pemain dalam urutan giliran tidak sama dengan daftar pemain. Muat ulang daftar pemain dan periksa data user_id sebelum memulai.');return}
   const scores=isTeamRoom()?{TEAM_S:0,TEAM_O:0}:Object.fromEntries(order.map(id=>[id,0]));
   const nextRoom={status:'playing',board:Array(size*size).fill(null),scores,team_mode:room.team_mode||'solo',players_order:order,current_turn:0,turn_started_at:new Date(Date.now()+35000).toISOString(),board_size:size,surrendered_players:[],draw_votes:{},draw_cooldowns:{},draw_request_by:null,draw_request_at:null,result_reason:null,first_sos_player_id:null};levelBeforeMatch=Number(accountState?.level||1);gameFinished=false;$('backLobby').style.display='none';
   const r=await sb.from('sos_rooms').update(nextRoom).eq('id',roomId).eq('host_id',user.id).select('*').maybeSingle();
@@ -1777,20 +1801,23 @@ async function submitOnlineMove(i,p){
   } else if(activeK || (relic?.owner===actorId&&['combo','multiple'].includes(relic.type))) {
     relic=null;
   }
-  let nextTurn=Number(room.current_turn)||0;
-  const nextRoomPatch={scores:adjustedScores,relic_state:relic};
-  if(Array.isArray(room.surrendered_players))nextRoomPatch.surrendered_players=room.surrendered_players;
-  if(Array.isArray(room.surrendered_players)&&room.surrendered_players.includes(actorId)&&!found.length){
-   for(let n=0;n<order.length&&room.surrendered_players.includes(order[nextTurn]);n++)nextTurn=(nextTurn+1)%order.length;
-   nextRoomPatch.current_turn=nextTurn;
-   nextRoomPatch.turn_started_at=new Date().toISOString();
-   const activeIds=order.filter(id=>!room.surrendered_players.includes(id));
-   if(team){
-    const activeS=activeIds.filter(id=>playerTeam(players.find(x=>x.user_id===id))==='S');
-    const activeO=activeIds.filter(id=>playerTeam(players.find(x=>x.user_id===id))==='O');
-    if(!activeS.length||!activeO.length){nextRoomPatch.status='finished';nextRoomPatch.result_reason='team_surrender';nextRoomPatch.winning_team=activeS.length?'S':activeO.length?'O':null;}
-   }else if(activeIds.length<=1){nextRoomPatch.status='finished';nextRoomPatch.result_reason=activeIds.length===1?'last_player_standing':'all_surrendered';}
+  // Jangan mengandalkan current_turn hasil RPC untuk menentukan pemain berikutnya.
+  // Gunakan indeks aktor dalam players_order yang sudah dikunci ketika game dimulai.
+  // SOS mempertahankan giliran aktor; langkah biasa berpindah ke pemain aktif berikutnya.
+  const surrenderedNow=[...(room.surrendered_players||[])];
+  const actorIndex=order.indexOf(actorId);
+  let nextTurn=actorIndex>=0?actorIndex:(Number(priorRoom?.current_turn)||0);
+  if(!found.length&&order.length){
+   for(let step=1;step<=order.length;step++){const candidate=((nextTurn+step)%order.length);if(!surrenderedNow.includes(order[candidate])){nextTurn=candidate;break}}
   }
+  const nextRoomPatch={scores:adjustedScores,relic_state:relic,current_turn:nextTurn,turn_started_at:new Date().toISOString()};
+  if(Array.isArray(room.surrendered_players))nextRoomPatch.surrendered_players=room.surrendered_players;
+  const activeIds=order.filter(id=>!surrenderedNow.includes(id));
+  if(team){
+   const activeS=activeIds.filter(id=>playerTeam(players.find(x=>x.user_id===id))==='S');
+   const activeO=activeIds.filter(id=>playerTeam(players.find(x=>x.user_id===id))==='O');
+   if(!activeS.length||!activeO.length){nextRoomPatch.status='finished';nextRoomPatch.result_reason='team_surrender';nextRoomPatch.winning_team=activeS.length?'S':activeO.length?'O':null;}
+  }else if(surrenderedNow.includes(actorId)&&activeIds.length<=1){nextRoomPatch.status='finished';nextRoomPatch.result_reason=activeIds.length===1?'last_player_standing':'all_surrendered';}
   const patch=await sb.from('sos_rooms').update(nextRoomPatch).eq('id',roomId).eq('status','playing');
   if(patch.error)throw new Error('Langkah tersimpan, tetapi efek relik gagal disimpan: '+patch.error.message);
   room={...room,...nextRoomPatch};syncFromRoom(room);
