@@ -2348,7 +2348,52 @@ $('lobbyOpenLeaderboard').onclick=openLevelLeaderboard;
 
 $('lobbyOpenDeveloper').onclick=()=>{if(!isStaffAccount()){alert('Fitur ini hanya untuk akun staff.');return}$('openDeveloper').click()};
 $('coinPlus').onclick=openCurrencyMenu;$('diamondPlus').onclick=openCurrencyMenu;$('lobbyCurrencyPlus').onclick=openCurrencyMenu;
-async function refreshDailyDiamondClaim(){const el=$('dailyDiamondClaim');const modalEl=$('dailyDiamondClaimModal');if(!el&&!modalEl)return;if(!user||!sb){if(el)el.textContent='Login untuk mengklaim 1 berlian setiap 24 jam.';if(modalEl)modalEl.textContent='Login untuk mengklaim 1 berlian setiap 24 jam.';return}try{const r=await sb.rpc('sos_daily_diamond_status');if(r.error)throw r.error;const d=Array.isArray(r.data)?r.data[0]:r.data;const next=d?.next_claim_at?new Date(d.next_claim_at).getTime():0;const left=Math.max(0,next-Date.now());if(left<=0){if(el)el.innerHTML='Klaim harian tersedia: <b>+1 💎</b> <button id="claimDailyDiamond" type="button">KLAIM</button>';if(modalEl)modalEl.innerHTML='Klaim harian tersedia: <b>+1 💎</b> <button id="claimDailyDiamondModalBtn" type="button">KLAIM</button>';const bt=$('claimDailyDiamond');const btm=$('claimDailyDiamondModalBtn');if(btm)btm.onclick=()=>bt?.click();bt.onclick=async()=>{bt.disabled=true;try{const c=await sb.rpc('sos_claim_daily_diamond');if(c.error)throw c.error;await refreshAccountProfile();await refreshDailyDiamondClaim()}catch(e){alert('Klaim gagal: '+e.message);await refreshDailyDiamondClaim()} };}else{const h=Math.floor(left/3600000),m=Math.floor(left%3600000/60000),sec=Math.floor(left%60000/1000);const label='Sudah diambil ✓ · Klaim berikutnya dalam '+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');if(el)el.textContent=label;if(modalEl)modalEl.textContent=label;setTimeout(refreshDailyDiamondClaim,1000)}}catch(e){if(el)el.textContent='Klaim harian belum tersedia. Jalankan SQL pembaruan terbaru.';if(modalEl)modalEl.textContent='Klaim harian belum tersedia. Jalankan SQL pembaruan terbaru.';console.warn('Status klaim berlian:',e.message)}}
+let dailyDiamondRefreshBusy=false,dailyDiamondTimer=null,dailyDiamondClaimBusy=false;
+async function refreshDailyDiamondClaim(){
+ const el=$('dailyDiamondClaim'),modalEl=$('dailyDiamondClaimModal');
+ if(dailyDiamondTimer){clearTimeout(dailyDiamondTimer);dailyDiamondTimer=null}
+ if(!el&&!modalEl)return;
+ const show=(message,html=false)=>{[el,modalEl].filter(Boolean).forEach(node=>{if(html)node.innerHTML=message;else node.textContent=message})};
+ if(!user||!sb){show('Login untuk mengklaim 1 berlian setiap 24 jam.');return}
+ if(dailyDiamondRefreshBusy)return;
+ dailyDiamondRefreshBusy=true;
+ try{
+  const r=await sb.rpc('sos_daily_diamond_status');
+  if(r.error)throw r.error;
+  const d=Array.isArray(r.data)?r.data[0]:r.data;
+  const nextRaw=d?.next_claim_at;
+  const next=nextRaw?Date.parse(nextRaw):0;
+  // Status tanpa tanggal berikutnya atau tanggal yang sudah lewat berarti klaim siap.
+  if(!Number.isFinite(next)||!nextRaw||next<=Date.now()){
+   show('Klaim harian tersedia: <b>+1 💎</b> <button class="claim-daily-diamond" type="button">KLAIM</button>',true);
+   document.querySelectorAll('.claim-daily-diamond').forEach(bt=>{
+    bt.onclick=async()=>{
+     if(dailyDiamondClaimBusy)return;
+     dailyDiamondClaimBusy=true;
+     document.querySelectorAll('.claim-daily-diamond').forEach(b=>b.disabled=true);
+     try{
+      const c=await sb.rpc('sos_claim_daily_diamond');
+      if(c.error)throw c.error;
+      await refreshAccountProfile();
+      await refreshDailyDiamondClaim();
+     }catch(e){
+      alert('Klaim gagal: '+(e?.message||String(e)));
+      await refreshDailyDiamondClaim();
+     }finally{dailyDiamondClaimBusy=false}
+    };
+   });
+  }else{
+   const left=next-Date.now();
+   const h=Math.floor(left/3600000),m=Math.floor(left%3600000/60000),sec=Math.floor(left%60000/1000);
+   show('Sudah diambil ✓ · Klaim berikutnya dalam '+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'));
+   // Selalu minta status server kembali setelah hitung mundur mencapai nol.
+   dailyDiamondTimer=setTimeout(()=>refreshDailyDiamondClaim(),Math.min(1000,Math.max(100,left)));
+  }
+ }catch(e){
+  show('Status klaim harian gagal dimuat. Periksa koneksi lalu coba buka kembali.');
+  console.warn('Status klaim berlian:',e?.message||e);
+ }finally{dailyDiamondRefreshBusy=false}
+}
 $('diamondPlus').onclick=()=>modal('KLAIM BERLIAN HARIAN',b=>{const p=document.createElement('p');p.className='muted';p.textContent='Klaim 1 berlian gratis setiap 24 jam. Tidak ada iklan. Setelah diklaim, tombol berubah menjadi “Sudah diambil” dan timer menghitung mundur.';b.append(p);const status=document.createElement('div');status.id='dailyDiamondClaimModal';status.className='notice';status.textContent='Memeriksa status klaim…';b.append(status);refreshDailyDiamondClaim();});
 $('openDeveloper').onclick=()=>{if(!isStaffAccount()){alert('Panel ini hanya untuk akun dengan peran staff.');return}modal('WEWENANG '+roleTitle(currentAccountRole()),b=>{
  const p=document.createElement('p');p.className='muted';p.textContent=currentAccountRole()==='officer'?'Panel officer hanya menampilkan kode redeem aktif dan QR-nya.':'Semua perubahan dijalankan melalui fungsi Supabase yang memeriksa izin di server. Masukkan ID pemain, bukan email.';b.append(p);
