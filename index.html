@@ -760,6 +760,30 @@ body.woman-theme #lobbyScreen .lobby-dock-button#lobbyOpenDeveloper.danger{
 @media(max-width:480px){.letter-chance-score{min-width:100%}.letter-chance-values{font-size:14px}}
 </style>
 
+
+<style id="team-score-panel-theme-layout">
+/* Panel skor mode tim: ukuran seragam dan warna kotak mengikuti tema akun, bukan warna tim. */
+#gameScreen #scorebar.team-mode-scorebar{display:flex;flex-wrap:wrap;align-items:stretch;gap:9px;}
+#gameScreen #scorebar.team-mode-scorebar .team-score-toggle,
+body.woman-theme #gameScreen #scorebar.team-mode-scorebar .team-score-toggle,
+body:not(.woman-theme) #gameScreen #scorebar.team-mode-scorebar .team-score-toggle{
+  box-sizing:border-box;flex:1 1 calc(50% - 5px);width:calc(50% - 5px);min-width:0;max-width:230px;min-height:92px;
+  padding:10px 12px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;text-align:center;color:#f5f8ff;border:1px solid #56bfff88;
+  background:linear-gradient(145deg,#123b60,#10233f)!important;
+  box-shadow:inset 0 1px 0 #ffffff14,0 5px 14px #0003;
+}
+body.woman-theme #gameScreen #scorebar.team-mode-scorebar .team-score-toggle{
+  border-color:#ff83c4aa;background:linear-gradient(145deg,#552044,#2c1638)!important;
+}
+#gameScreen #scorebar.team-mode-scorebar .team-score-toggle strong{font-size:clamp(22px,5vw,27px);line-height:1.05;margin:1px 0;}
+#gameScreen #scorebar.team-mode-scorebar .team-score-toggle span{font-size:12px;font-weight:1000;letter-spacing:.06em;}
+#gameScreen #scorebar.team-mode-scorebar .team-score-toggle small{font-size:10px;line-height:1.25;opacity:.82;}
+@media(max-width:420px){
+ #gameScreen #scorebar.team-mode-scorebar{gap:7px;}
+ #gameScreen #scorebar.team-mode-scorebar .team-score-toggle{min-height:86px;padding:8px 6px;}
+}
+</style>
 </head>
 <body>
 <!-- Background music: a single manager switches tracks so they never overlap. -->
@@ -1822,7 +1846,7 @@ function openTeamScoreDetail(side){
 $('teamScoreDetailClose')?.addEventListener('click',()=>{$('teamScoreDetailOverlay')?.classList.remove('open');$('teamScoreDetailOverlay')?.setAttribute('aria-hidden','true')});
 $('teamScoreDetailOverlay')?.addEventListener('click',e=>{if(e.target===$('teamScoreDetailOverlay')){$('teamScoreDetailOverlay').classList.remove('open');$('teamScoreDetailOverlay').setAttribute('aria-hidden','true')}});
 function renderScores(){
- $('scorebar').innerHTML='';
+ const scorebar=$('scorebar');scorebar.innerHTML='';scorebar.classList.toggle('team-mode-scorebar',mode==='online'&&isTeamRoom());
  if(mode==='online'&&isTeamRoom()){
   for(const side of ['S','O']){
    const btn=document.createElement('button');btn.type='button';btn.className='team-score-toggle'+(side==='O'?' team-o':'');
