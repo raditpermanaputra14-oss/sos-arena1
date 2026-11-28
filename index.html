@@ -1748,6 +1748,7 @@ async function useGameCard(it){
  if(!await sosConfirm('Gunakan '+it.name+'? Kartu akan dikonsumsi sekali pakai.',{title:'KONFIRMASI KARTU',icon:'🃏',confirmText:'GUNAKAN'}))return;
  try{
   const rr=await sb.rpc('sos_use_card',{p_item_id:id,p_room_id:roomId});if(rr.error)throw rr.error;
+   window.sosCardDockStartCooldown?.();
   const actor=players.find(x=>x.user_id===user.id)||currentPlayer();let msg='',nextRoom={...room},relic=room.relic_state||null;
   const sc={...(room.scores||scores)},target=players.find(x=>x.user_id===activeId)||{user_id:activeId,nickname:'pemain lawan'};
   const setTurn=(nextIndex)=>{nextRoom.current_turn=(nextIndex+order.length)%order.length;nextRoom.turn_started_at=new Date().toISOString();nextRoom.relic_state=null};
@@ -3143,5 +3144,62 @@ const body=el('featureModalBody');if(body){const obs=new MutationObserver(()=>{i
  // Re-check on room/mode/screen transitions without changing the game layout.
  setInterval(updateVoiceoverDock,400);
  window.sosVoiceoverDock={setChannel(ch){voiceoverRealtimeChannel=ch},receive:receiveVoiceover,refresh:updateVoiceoverDock};
+})();
+</script>
+
+
+<style id="sos-card-dock-style">
+#gameCardControls{display:none!important}
+#sosCardDock{position:fixed;z-index:95;left:50%;bottom:max(8px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(94vw,430px);display:none;flex-direction:column;align-items:center;gap:5px;pointer-events:none}
+#gameScreen.active~#sosCardDock,#sosCardDock.visible{display:flex}
+#sosCardDockPanel{width:100%;padding:7px 6px 8px;border:1px solid #65f4ff55;border-radius:17px;background:linear-gradient(155deg,#081326f2,#17102bf2);box-shadow:0 5px 24px #000b,0 0 16px #65f4ff20;display:none;pointer-events:auto;max-height:42vh;overflow-y:auto;overscroll-behavior:contain}
+#sosCardDock.open #sosCardDockPanel{display:block}
+#sosCardDockGrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;justify-items:center}
+.sos-card-orb{position:relative!important;width:clamp(34px,8.6vw,48px)!important;height:clamp(34px,8.6vw,48px)!important;min-width:0!important;min-height:0!important;padding:0!important;margin:0!important;border-radius:50%!important;display:grid!important;place-items:center!important;background:radial-gradient(circle at 35% 25%,#23375a,#080d1d 72%)!important;border:1.5px solid var(--orb-color,#65f4ff)!important;box-shadow:inset 0 0 8px #ffffff13,0 0 8px color-mix(in srgb,var(--orb-color) 30%,transparent)!important;overflow:hidden!important;animation:none!important}
+.sos-card-orb svg{width:76%;height:76%;display:block;pointer-events:none}
+.sos-card-orb.locked{--orb-color:#ffffff!important;filter:grayscale(1)!important;opacity:.38!important;background:radial-gradient(circle,#9ba0aa22,#10131c 75%)!important;box-shadow:none!important}
+.sos-card-orb:disabled{opacity:.42!important;filter:grayscale(.75)!important}
+.sos-card-orb .sos-card-cd{position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;background:#050711d9;color:#fff;font-size:10px;font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 1px 3px #000}
+#sosCardDockToggle{pointer-events:auto;width:34px!important;height:25px!important;min-height:25px!important;padding:0!important;border-radius:12px 12px 8px 8px!important;font-size:17px!important;line-height:1!important;color:#fff!important;background:#0b1428eF!important;border:1px solid #65f4ff77!important;box-shadow:0 0 12px #65f4ff2a!important;animation:none!important}
+#sosCardDock.open #sosCardDockToggle{border-radius:8px 8px 12px 12px!important}
+body.woman-theme #sosCardDockPanel{border-color:#ff78bd66;background:linear-gradient(155deg,#210d20f5,#130a1bf5);box-shadow:0 5px 24px #000b,0 0 16px #ff78bd20}
+body.woman-theme #sosCardDockToggle{border-color:#ff78bd88;background:#210d20f2!important}
+@media(max-width:380px){#sosCardDock{width:96vw}#sosCardDockGrid{gap:3px}.sos-card-orb{width:32px!important;height:32px!important}}
+</style>
+<script id="sos-card-dock-script">
+(()=>{
+ const SYMBOLS=['+1','×2','↙','◷+10','◷−10','Ⅱ','−1','+2','↟2','×3','−2','↙2','◷−20','−3','◷−5','×2★','↙3','◷+15','◷−15','+3','×3★','↙2★','−2★','×3◆','+4','Ⅱ−1','Ⅱ−3','∞+1','²','✦K'];
+ const COLORS=['#55eaff','#b78cff','#ff668f','#55eaff','#ff668f','#ff668f','#ff668f','#55eaff','#62f0b2','#b78cff','#ff668f','#ff668f','#ff668f','#ff668f','#ff668f','#b78cff','#ff668f','#55eaff','#ff668f','#55eaff','#b78cff','#ff668f','#ff668f','#b78cff','#ffd45c','#ffd45c','#ffd45c','#ffd45c','#b78cff','#ffd45c'];
+ const owned=()=>new Map(((typeof accountState!=='undefined'?accountState.inventory:[])||[]).filter(x=>x.type==='card'&&Number(x.quantity)>0).map(x=>[Number(x.itemId),Number(x.quantity)]));
+ const storageKey=()=>`sos_card_global_cd_${(typeof user!=='undefined'&&user?.id)||'guest'}`;
+ const getUntil=()=>Number(localStorage.getItem(storageKey())||0);
+ const remaining=()=>Math.max(0,getUntil()-Date.now());
+ const dock=document.createElement('div');dock.id='sosCardDock';dock.innerHTML='<div id="sosCardDockPanel"><div id="sosCardDockGrid"></div></div><button id="sosCardDockToggle" type="button" aria-label="Buka dock kartu">^</button>';document.body.append(dock);
+ const grid=dock.querySelector('#sosCardDockGrid'),toggle=dock.querySelector('#sosCardDockToggle');
+ const svg=(symbol,color)=>`<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="none" stroke="${color}" stroke-width="1.4" opacity=".9"/><circle cx="24" cy="24" r="16.5" fill="none" stroke="${color}" stroke-width=".55" opacity=".45"/><text x="24" y="29" text-anchor="middle" font-family="Arial,sans-serif" font-size="${symbol.length>4?10:symbol.length>3?12:15}" font-weight="900" fill="${color}">${symbol}</text></svg>`;
+ function draw(){
+  const inv=owned(),cd=remaining();grid.innerHTML='';
+  for(let id=1;id<=30;id++){
+   const have=(inv.get(id)||0)>0,b=document.createElement('button');b.type='button';b.className='sos-card-orb'+(have?'':' locked');b.style.setProperty('--orb-color',have?COLORS[id-1]:'#fff');
+   b.title=have?`Kartu ${id} · tersisa ${inv.get(id)}`:`Kartu ${id} belum dimiliki`;
+   b.setAttribute('aria-label',b.title);
+   b.innerHTML=have?svg(SYMBOLS[id-1],COLORS[id-1]):'<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M16 21v-5a8 8 0 0 1 16 0v5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><rect x="12" y="21" width="24" height="19" rx="4" fill="#fff" opacity=".75"/><circle cx="24" cy="29" r="2.4" fill="#777"/><path d="M24 31v4" stroke="#777" stroke-width="2" stroke-linecap="round"/></svg>';
+   if(cd>0){const ov=document.createElement('span');ov.className='sos-card-cd';ov.textContent=Math.ceil(cd/1000)+'s';b.append(ov)}
+   b.disabled=!have||cd>0;
+   if(have)b.addEventListener('click',()=>{if(remaining()>0)return;const fn=window.useGameCard;if(typeof fn==='function')fn({itemId:id,name:(['Bonus SOS +1','Pengganda SOS ×2','Pencuri Poin I','Penambah Waktu +10','Pemotong Waktu −10','Penyekip Giliran','Pengurang Poin I','Bonus SOS +2','Pemulih Skor +2','Pengali SOS ×3','Pengurang Poin II','Pencuri Poin II','Pembeku Giliran 20','Pengurang Poin III','Pemotong Waktu −5','Pengganda SOS Premium','Pencuri Poin III','Penambah Waktu +15','Pemotong Waktu −15','Bonus SOS +3','Pengali SOS ×3 Premium','Pencuri Poin Elite','Pengurang Poin Elite','Pengganda SOS ×3 Elite','Bonus SOS +4','Relik Skip I','Relik Skip II','Kartu Kombo','Kartu Multipel','Relik K'][id-1]),quantity:inv.get(id),type:'card'})});
+   grid.append(b);
+  }
+  const gameActive=!!document.querySelector('#gameScreen.active')&&typeof mode!=='undefined'&&mode==='online'&&typeof user!=='undefined'&&!!user;
+  dock.classList.toggle('visible',gameActive);
+  toggle.textContent=dock.classList.contains('open')?'v':'^';
+  toggle.setAttribute('aria-label',dock.classList.contains('open')?'Tutup dock kartu':'Buka dock kartu');
+ }
+ toggle.addEventListener('click',()=>{dock.classList.toggle('open');draw()});
+ window.sosCardDockStartCooldown=()=>{localStorage.setItem(storageKey(),String(Date.now()+300000));draw()};
+ window.sosCardDockRefresh=draw;
+ setInterval(draw,500);
+ const oldRender=window.renderGameCards;
+ if(typeof oldRender==='function')window.renderGameCards=function(){oldRender();draw()};
+ draw();
 })();
 </script>
